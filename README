@@ -1,0 +1,30 @@
+              WSN sensor daemon and supporting utilities
+              ------------------------------------------
+
+Robert Olsson <robert@herjulf.se>
+Jens Laas <jens.laas@uadm.uu.se>
+
+This is collection of software to implement data monitoring and data collection
+from WSN Wireless Sensor Networks. The basic idea is to to do a simple, 
+straight-forward and robust framework.
+
+Scenario: One or several mots is connected to USB or serial port to gather 
+received information from connected WSN motes. Data is stored in ASCII with 
+tagging and ID information.
+
+
+The major components:
+
+ sensd -- A daemon that reads from USB/serial and stores data in a 
+          ASCII data file. Usually sensors.dat
+
+ js -- A set Java-scripts can plot, print and visualize sensor data
+           from sensd direct in your web-browser.
+
+ seltag -- simple program that can extract data via tags and format 
+           output for plottling and further analysis. Ie gnuplot.
+
+ doc -- Documentation and sample files
+
+
+
