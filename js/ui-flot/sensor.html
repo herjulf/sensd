@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+ <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Sensordata</title>
+    <link href="layout.css" rel="stylesheet" type="text/css">
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="excanvas.min.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+   <script language="javascript" type="text/javascript" src="jquery.flot.navigate.js"></script>
+<script language="javascript" type="text/javascript" src="jquery.flot.axislabels.js"></script>
+ </head>
+    <body>
+    <h1>Sensor data -- graph</h1>
+
+    <p><a href="/" id="back">Back to index</a></p>
+    <div id="placeholder" style="width:60em;height:30em;"></div>
+
+    <p>
+      <input class="fetchSeries" type="button" value="Display"> -
+      <span></span>
+    </p>
+
+<script language="javascript" type="text/javascript" src="sensor.js"></script>
+Latest readings:
+<table border="1" id="items">
+
+</table>
+
+ </body>
+</html>
