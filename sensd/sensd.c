@@ -37,7 +37,7 @@
 #include <signal.h>
 #include "devtag-allinone.h"
 
-#define VERSION "2.1 120521"
+#define VERSION "2.2 120625"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -67,11 +67,12 @@ void usage_tty_talk(void)
 
 void usage_sensd(void)
 {
-  printf("\nsensd daemon reads from serial/USB and writes sensor data in a file\n");
-  printf("Version %s\n\n", VERSION);
-  printf("sensd [-utc] -ffile DEV\n");
+  printf("\nVersion %s\n", VERSION);
+  printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
+  printf("Usage: sensd [-utc] [-ffile] DEV\n");
   printf(" -utc time in UTC\n");
-  printf(" Example: sensd  -f/var/data/sensors.dat /dev/ttyUSB0\n");
+  printf(" -ffile data file. Default is /var/log/sensors.dat\n");
+  printf("Example: sensd  /dev/ttyUSB0\n");
   exit(-1);
 }
 
