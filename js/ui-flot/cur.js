@@ -125,7 +125,7 @@ function onDataReceived(data, text) {
 $(function () {
     // shorthand for: $(document).ready(callback)
 
-    var dataurl = "sensor.dat";    
+    var dataurl = "sensors.dat";    
     var data = [];
 
     a = $.ajax({
