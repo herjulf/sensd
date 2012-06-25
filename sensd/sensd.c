@@ -266,6 +266,7 @@ int main(int ac, char *av[])
 	  date = 1;
 	  utime = 1;
 	  utc = 0;
+	  filename = "/var/log/sensors.dat";
 	}
 
 	if(ac == 1) 
