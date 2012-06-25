@@ -186,7 +186,7 @@ function drawplot(options) {
 
     
     // find the URL in the link right next to us 
-    var dataurl = "sensor.dat";
+    var dataurl = "sensors.dat";
     
     // then fetch the data with jQuery
     function onDataReceived(rawseries, status, xhr) {
