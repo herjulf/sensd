@@ -69,9 +69,10 @@ void usage_sensd(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-utc] [-ffile] DEV\n");
+  printf("Usage: sensd [-utc] [-ffile] [-Rpath] DEV\n");
   printf(" -utc time in UTC\n");
   printf(" -ffile data file. Default is /var/log/sensors.dat\n");
+  printf(" -Rpath Path for reports. One dir per sensor. One file per value.\n");
   printf("Example: sensd  /dev/ttyUSB0\n");
   exit(-1);
 }
@@ -171,7 +172,6 @@ int have_lock_dir(void)
 
 int get_lock()
 {
- struct stat stt;
   char buf[128];
   int fd, n = 0;
 
@@ -238,6 +238,50 @@ void print_date(char *datebuf)
   }
 }
 
+int report(const char *buf, const char *reportpath)
+{
+	struct stat statb;
+	char *s = strdup(buf);
+	char *id = NULL;
+	char *val, *n;
+	char fn[512];
+	char tmpfn[512];
+
+	while(*s) {
+		while(*s && *s == ' ') s++;
+
+		n=s; while(*n && *n != ' ') n++;
+		if(*n) { *n = 0; n++; }
+		
+		val = strchr(s, '=');
+		if(val) {
+			*val++ = 0;
+			if(!id) {
+				if((strcmp(s, "ID")==0) && *val) {
+					id = val;
+					snprintf(fn, sizeof(fn), "%s/%s", reportpath, id);
+					if(stat(fn, &statb)) {
+						mkdir(fn, 0755);
+					}
+				}
+			}
+			if(id && *val) {
+				int fd;
+				snprintf(fn, sizeof(fn), "%s/%s/%s", reportpath, id, s);
+				snprintf(tmpfn, sizeof(tmpfn), "%s/%s/%s.tmp", reportpath, id, s);
+				fd = open(tmpfn, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+				if(fd >= 0) {
+					write(fd, val, strlen(val));
+					close(fd);
+					rename(tmpfn, fn);
+				}
+			}
+		}
+		s = n;
+	}
+	return 0;
+}
+
 int main(int ac, char *av[]) 
 {
 	struct termios tp, old;
@@ -245,6 +289,7 @@ int main(int ac, char *av[])
 	char io[BUFSIZ];
 	char buf[2*BUFSIZ];
 	char *filename = NULL;
+	char *reportpath = NULL;
 	int res;
 	int i, done, len, idx;
 	char *prog = basename (av[0]);
@@ -320,10 +365,23 @@ int main(int ac, char *av[])
 	    else if (strncmp(av[i], "-f", 2) == 0) 
 	      filename = av[i]+2;
 
+	    else if (strncmp(av[i], "-R", 2) == 0) {
+	      reportpath = av[i]+2;
+	      if(!*reportpath) reportpath = "/var/lib/sensd";
+	    }
+
 	    else
 	      usage();
 
 	  }
+
+	if(reportpath) {
+		struct stat statb;
+		if(stat(reportpath, &statb)) {
+			fprintf(stderr, "Failed to open '%s'\n", reportpath);
+			exit(2);
+		}
+	}
 
 	if(filename) {
 		int ofd;
@@ -483,6 +541,8 @@ TABDLY BSDLY VTDLY FFDLY
 
 	int j = 0;
 
+	if(reportpath) umask(0);
+	
 	while (!done && (res = read(fd, io, BUFSIZ)) > 0)  {
 	    int i;
 	    char outbuf[512];
@@ -496,6 +556,7 @@ TABDLY BSDLY VTDLY FFDLY
 		      buf[j] = 0;
 		      strcat(outbuf, buf);
 		      write(1, outbuf, strlen(outbuf));
+		      if(reportpath) report(buf, reportpath);
 		      
 		      j = -1;
 		      
