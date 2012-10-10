@@ -37,7 +37,7 @@
 #include <signal.h>
 #include "devtag-allinone.h"
 
-#define VERSION "2.2 120625"
+#define VERSION "2.3 121010"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
