@@ -10,7 +10,11 @@ Abstract
 --------
 We've outlined, designed and implemented and very simple concept for WSN data
 reports, including collection, storage and retrieval using standard text tools.
-Programs are written C, Java-script and bash. 
+The concept includes a mapping to URI (Unified Resource Identifier) to form
+a WSN caching server similar to CoAP with http-proxy.
+
+All programs are written C, Java-script and bash. And designed for for small
+footprint and minimal dependencies.
 
 Copyright
 ---------
@@ -24,9 +28,21 @@ from WSN Wireless Sensor Networks. The basic idea is to do a very simple,
 straight-forward and robust framework.
 
 The scenario, One or several mots is connected to USB or serial port to gather 
-received information from connected WSN motes. Data is stored in ASCII with 
-tagging and ID information. Data is conviently handled, copied and viewed with 
-standard text utilties of your OS.
+received information from connected WSN motes. Data can can visualized in two
+ways.
+
+1) Data is stored in ASCII with tagging and ID information. Data is conviently 
+   handled, copied and viewed with standard text utilties of your OS.
+
+2) Last mote report is cached into the file system suitable for URI use. The 
+   Format is SID/TAG. The different TAGS are left for mote user to define.
+   Although the TAGS used in our example setup is included is this draft 
+   This for example purposes.
+   
+ 
+Both formats can easily the be stored or linked directly in web tree to form a 
+URI to format WSN loggin/datafile or caching service..
+
 
 The major components
 --------------------
@@ -41,7 +57,6 @@ The major components
            output for plottling and further analysis. Ie gnuplot.
 
  doc -- Documentation and sample files
-
 
 Expose WSN data aternatives:
 
