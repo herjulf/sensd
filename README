@@ -14,7 +14,7 @@ The concept includes a mapping to URI (Unified Resource Identifier) to form
 a WSN caching server similar to CoAP with http-proxy.
 
 All programs are written C, Java-script and bash. And designed for for small
-footprint and minimal dependencies.
+footprint and minimal dependencies. sensd runs on Raspberry Pi and openwrt.
 
 Copyright
 ---------
@@ -130,15 +130,18 @@ make
 Put your binaries after your preference:
 
 Pre-built binary versions
--------------------------
+--------------------------
 
+For x86:
 Sensd and friends are available in Bifrost/Linux packages. Those packages are
 statically linked and can be used on most x86 Linuxes. 32-bit compiled.
 
 http://ftp.sunet.se/pub/Linux/distributions/bifrost/download/opt/opt-sensd-2.3-1.tar.gz
 
+
 Testing
 -------
-The concept has been tested with Contiki, RIME broadcast application. 
+The WSN data logging and caching concept has been tested with Contiki, RIME 
+broadcast application. 
 
 
