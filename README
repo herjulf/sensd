@@ -123,7 +123,7 @@ Getting the source and building
 Code is stored in github. Typically procedure below is the very straight-
 forward unix way:
 
-git clone https://github.com/herjulf/sensd
+git clone http://github.com/herjulf/sensd
 cd sensd
 make
 
@@ -135,7 +135,7 @@ Pre-built binary versions
 Sensd and friends are available in Bifrost/Linux packages. Those packages are
 statically linked and can be used on most x86 Linuxes. 32-bit compiled.
 
-ftp://ftp.sunet.se/pub/Linux/distributions/bifrost/download/opt/opt-sensd-2.3-1.tar.gz
+http://ftp.sunet.se/pub/Linux/distributions/bifrost/download/opt/opt-sensd-2.3-1.tar.gz
 
 Testing
 -------
