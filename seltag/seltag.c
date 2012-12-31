@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define VERSION "0.9 120312"
+#define VERSION "0.9 121231"
 
 /*
  *  Copyright Robert Olsson <robert@herjulf.se>
@@ -35,7 +35,7 @@ int main(int ac, char *av[])
   char buf[BUFSIZ], buf1[BUFSIZ], *res;
   int i, j, k, cpy;
 
-  if (strcmp(av[1], "-h") == 0) 
+  if (ac == 1 || strcmp(av[1], "-h") == 0) 
     usage();
 
   cpy = atoi(av[1]);
