@@ -1,9 +1,10 @@
-              WSN sensor daemon and supporting utilities
-              ==========================================
+WSN sensor daemon and supporting utilities
+==========================================
 
 Authors
 --------					
 Robert Olsson <robert@herjulf.se>
+
 Jens Laas <jens.laas@uadm.uu.se>
 
 Abstract
@@ -11,7 +12,7 @@ Abstract
 We've outlined, designed and implemented and very simple concept for WSN data
 reports, including collection, storage and retrieval using standard text tools.
 The concept includes a mapping to URI (Unified Resource Identifier) to form
-a WSN caching server similar to CoAP with http-proxy.
+a WSN caching server similar to CoAP using http-proxy.
 
 All programs are written C, Java-script and bash. And designed for for small
 footprint and minimal dependencies. sensd runs on Raspberry Pi and openwrt.
@@ -47,23 +48,27 @@ URI to format WSN loggin/datafile or caching service..
 The major components
 --------------------
 
-### sensd -- A daemon that reads WSN mote reports from USB/serial and stores 
-          data in a ASCII data file. Usually sensors.dat
+### sensd 
+A daemon that reads WSN mote reports from USB/serial and stores data in a ASCII
+data file. Default /var/log/sensors.dat
 
-### js -- A set of Java-scripts can plot, print and visualize sensor data
-           from sensd direct in your web-browser.
+### js
+A set of Java-scripts can plot, print and visualize sensor data from sensd 
+direct in your web-browser.
 
-### seltag -- simple program that can extract data via tags and format 
-           output for plottling and further analysis. Ie gnuplot.
+### seltag 
+A simple program that can extract data (sensors.dat) via tags and format output
+for plottling and further analysis. Ie gnuplot.
 
-### doc -- Documentation and sample files
+### doc
+Documentation and sample files
 
 
 Expose WSN data aternatives:
 
 
-Datafile logging. 
------------------
+Datafile logging 
+----------------
 
 Below is and example of an anatomy of sensors.dat we currently using in our WSN 
 data collection networks. 
@@ -117,7 +122,7 @@ Read Temp from a sensor:
 cat /tmp/WSN1-GW1/281a98d20200004a/T 
 19.44
 
-And very easy to link this tree into web-server.
+And very easy to link this tree into a web-server.
 
 
 Getting the source and building
