@@ -1,5 +1,5 @@
               WSN sensor daemon and supporting utilities
-              ------------------------------------------
+              ==========================================
 
 Authors
 --------					
@@ -31,10 +31,10 @@ The scenario, One or several mots is connected to USB or serial port to gather
 received information from connected WSN motes. Data can can visualized in two
 ways.
 
-1) Data is stored in ASCII with tagging and ID information. Data is conviently 
+*  Data is stored in ASCII with tagging and ID information. Data is conviently 
    handled, copied and viewed with standard text utilties of your OS.
 
-2) Last mote report is cached into the file system suitable for URI use. The 
+*  Last mote report is cached into the file system suitable for URI use. The 
    Format is SID/TAG. The different TAGS are left for mote user to define.
    Although the TAGS used in our example setup is included is this draft 
    This for example purposes.
@@ -47,22 +47,23 @@ URI to format WSN loggin/datafile or caching service..
 The major components
 --------------------
 
- sensd -- A daemon that reads WSN mote reports from USB/serial and stores 
+### sensd -- A daemon that reads WSN mote reports from USB/serial and stores 
           data in a ASCII data file. Usually sensors.dat
 
- js -- A set of Java-scripts can plot, print and visualize sensor data
+### js -- A set of Java-scripts can plot, print and visualize sensor data
            from sensd direct in your web-browser.
 
- seltag -- simple program that can extract data via tags and format 
+### seltag -- simple program that can extract data via tags and format 
            output for plottling and further analysis. Ie gnuplot.
 
- doc -- Documentation and sample files
+### doc -- Documentation and sample files
+
 
 Expose WSN data aternatives:
 
 
-1) Datafile logging. 
---------------------
+Datafile logging. 
+-----------------
 
 Below is and example of an anatomy of sensors.dat we currently using in our WSN 
 data collection networks. 
@@ -81,23 +82,24 @@ Indicator) and LQI (Link Quality Indicator)
 
 The tags used in example above:
 
-   UT= Unix time
-   ID= Unique 64 bit ID
-   T= temp in Celcius
-   PS= Power Save Indicator
-   V_MCU= Microcontorller Voltage
-   UP= Uptime (HEX)
-   RH= Relative Humidity in %
-   V_IN= Voltage Input
-   V_A1= Voltage Analog 1 (A1)
-   RSSI= Reeiver Signal Strengh Indicator
-   LQI= Link Quality Indicator
-   SEQ= Sequental Number (packet)   
-   DRP= Drop Probability (Contiki)
-   ADDR= 
+*   UT= Unix time
+*   ID= Unique 64 bit ID
+*   T= temp in Celcius
+*   PS= Power Save Indicator
+*   P= Pressure
+*   V_MCU= Microcontorller Voltage
+*   UP= Uptime (HEX)
+*   RH= Relative Humidity in %
+*   V_IN= Voltage Input
+*   V_A1= Voltage Analog 1 (A1)
+*   RSSI= Reeiver Signal Strengh Indicator
+*   LQI= Link Quality Indicator
+*   SEQ= Sequental Number (packet)   
+*   DRP= Drop Probability (Contiki)
+*   ADDR= 
 
-2) URI format. 
---------------
+URI format. 
+-----------
 URI (Unified Resource Indenifier) displays the node ID and the tags in a file tree.
 It is easy to export this into a web tree to form a URI similar to CoAP gateway.
 
