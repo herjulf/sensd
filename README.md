@@ -1,5 +1,5 @@
-WSN sensor daemon and supporting utilities
-==========================================
+sensd - A WSN daemon and supporting utilities
+=============================================
 
 Authors
 --------					
@@ -58,7 +58,8 @@ direct in your web-browser.
 
 ### seltag 
 A simple program that can extract data (sensors.dat) via tags and format output
-for plottling and further analysis. Ie gnuplot.
+for plotting and further analysis. Normally you extract the desired
+ID and the wanted tag identifiers.
 
 ### doc
 Documentation and sample files
@@ -103,10 +104,10 @@ The tags used in example above:
 *   DRP= Drop Probability (Contiki)
 *   ADDR= 
 
-URI format. 
------------
+URI format
+----------
 URI (Unified Resource Indenifier) displays the node ID and the tags in a file tree.
-It is easy to export this into a web tree to form a URI similar to CoAP gateway.
+It is easy to export this into a web tree to form a URI similar to a CoAP gateway.
 
 Example: In our case we have a unique sensor ID followed by the different data
 fields repesented by "tags".
