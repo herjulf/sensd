@@ -36,9 +36,9 @@ ways.
    handled, copied and viewed with standard text utilties of your OS.
 
 *  Last mote report is cached into the file system suitable for URI use. The 
-   Format is SID/TAG. The different TAGS are left for mote user to define.
-   Although the TAGS used in our example setup is included is this draft 
-   This for example purposes.
+   Format is SID/TAG. Typical tags are EUI64 and unique serial numbers. The 
+   different TAGS are left for mote user to define. Although the TAGS used in 
+   our example setup is included is this draft This for example purposes.
    
  
 Both formats can easily the be stored or linked directly in web tree to form a 
@@ -104,6 +104,14 @@ The tags used in example above:
 *   DRP= Drop Probability (Contiki)
 *   ADDR= 
 
+Datafile metadata 
+------------------
+Meta-data and additional information, descriptions and comments can be stored in
+data file to keep everything in on context. Of course pre-cautions must taken 
+so this auxiliary data can conflict the data. In example to to restrict or escaped
+the '=' sign. It suggested that data is retrieved with seltag or a similar technique.
+
+
 URI format
 ----------
 URI (Unified Resource Indenifier) displays the node ID and the tags in a file tree.
@@ -147,9 +155,9 @@ statically linked and can be used on most x86 Linuxes. 32-bit compiled.
 http://ftp.sunet.se/pub/Linux/distributions/bifrost/download/opt/opt-sensd-2.3-1.tar.gz
 
 
-Testing
--------
-The WSN data logging and caching concept has been tested with Contiki, RIME 
+Use
+---
+The WSN data logging and caching concept is in actual use with Contiki, RIME 
 broadcast application. 
 
 
