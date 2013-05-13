@@ -88,21 +88,34 @@ Indicator) and LQI (Link Quality Indicator)
 
 The tags used in example above:
 
-*   UT= Unix time
-*   ID= Unique 64 bit ID
-*   T= temp in Celcius
-*   PS= Power Save Indicator
-*   P= Pressure
-*   V_MCU= Microcontorller Voltage
-*   UP= Uptime (HEX)
-*   RH= Relative Humidity in %
-*   V_IN= Voltage Input
-*   V_A1= Voltage Analog 1 (A1)
+*   UT= Unix time            (Id)
+*   ID= Unique 64 bit ID     (S)
+*   T= temp in Celcius       (F)
+*   PS= Power Save Indicator (B)
+*   P= Pressure              (F)
+*   V_MCU= Microcontorller Voltage (F)
+*   UP= Uptime (Ih)
+*   RH= Relative Humidity in % (F)
+*   V_IN= Voltage Input        (F) 
+*   V_A1= Voltage Analog 1 (A1) (F) 
 *   RSSI= Reeiver Signal Strengh Indicator
-*   LQI= Link Quality Indicator
-*   SEQ= Sequental Number (packet)   
-*   DRP= Drop Probability (Contiki)
-*   ADDR= 
+*   LQI= Link Quality Indicator (Id)
+*   SEQ= Sequental Number (packet)  (Id) 
+*   DRP= Drop Probability (Contiki) (F) 
+*   ADDR=  (S)
+
+
+Data types
+----------
+Space or control chars is not allowed in any types.
+
+
+Float           (F)
+Integer Dec     (Id)
+Integer HEX     (Ih)
+Boolean 0 or 1  (B)
+String          (S)
+
 
 Datafile metadata 
 ------------------
