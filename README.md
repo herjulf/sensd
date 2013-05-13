@@ -19,7 +19,7 @@ footprint and minimal dependencies. sensd runs on Raspberry Pi and openwrt.
 
 Copyright
 ---------
-GPL
+Open-Sourrce via GPL
 
 Introduction
 ------------
@@ -68,6 +68,17 @@ Documentation and sample files
 Expose WSN data aternatives:
 
 
+Data types
+----------
+Space or control chars is not allowed in any types.
+
+
+Float           (F)
+Integer Dec     (Id)
+Integer HEX     (Ih)
+Boolean 0 or 1  (B)
+String          (S)
+
 Datafile logging 
 ----------------
 
@@ -103,18 +114,6 @@ The tags used in example above:
 *   SEQ= Sequental Number (packet)  (Id) 
 *   DRP= Drop Probability (Contiki) (F) 
 *   ADDR=  (S)
-
-
-Data types
-----------
-Space or control chars is not allowed in any types.
-
-
-Float           (F)
-Integer Dec     (Id)
-Integer HEX     (Ih)
-Boolean 0 or 1  (B)
-String          (S)
 
 
 Datafile metadata 
