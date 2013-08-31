@@ -2,7 +2,7 @@
   
  tty_talker over RX/TX serial port output on stdout
 
- Robert Olsson  <robert@herjulf.se>  most code taken from:
+ Robert Olsson  <robert@Radio-Sensors.COM>  most code taken from:
 
 
  file is part of the minicom communications package,
