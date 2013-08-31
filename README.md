@@ -3,7 +3,7 @@ sensd - A WSN daemon and supporting utilities
 
 Authors
 --------					
-Robert Olsson <robert@herjulf.se>
+Robert Olsson <robert@Radio-Sensors.COM>
 
 Jens Laas <jens.laas@uadm.uu.se>
 
