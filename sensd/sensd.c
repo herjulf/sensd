@@ -74,7 +74,8 @@ void usage_sensd(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-pport] [-utc] [-ffile] [-Rpath] DEV\n");
+  printf("Usage: sensd [-pport] [-report] [-utc] [-ffile] [-Rpath] DEV\n");
+  printf(" -report network report enable\n");
   printf(" -pport TCP server port. Default %d\n", SERVER_PORT);
   printf(" -utc time in UTC\n");
   printf(" -ffile data file. Default is /var/log/sensors.dat\n");
@@ -244,7 +245,7 @@ void print_date(char *datebuf)
   }
 }
 
-int report(const char *buf, const char *reportpath)
+int do_report(const char *buf, const char *reportpath)
 {
 	struct stat statb;
 	char *s = strdup(buf);
@@ -315,6 +316,7 @@ int main(int ac, char *av[])
 	int    nfds = 2, current_size = 0, j;
 	int    send_2_listners;
 	unsigned short port = SERVER_PORT;
+	unsigned short report = 0;
 
 	if (strcmp(prog, "tty_talk") == 0)  {
 	  invokation = INV_TTY_TALK;
@@ -340,8 +342,7 @@ int main(int ac, char *av[])
 	if(ac == 1) 
 	  usage();
 
-	for(i = 1; (i < ac) && (av[i][0] == '-'); i++)
-	  {
+	for(i = 1; (i < ac) && (av[i][0] == '-'); i++)  {
 	    if (strcmp(av[i], "-300") == 0) 
 	      baud = B300;
 
@@ -395,6 +396,9 @@ int main(int ac, char *av[])
 	    else if (strncmp(av[i], "-p", 2) == 0) {
 	      port = atoi(av[i]+2);
 	    }
+
+	    else if (strcmp(av[i], "-report") == 0) 
+	      report = 1;
 
 	    else
 	      usage();
@@ -563,10 +567,6 @@ TABDLY BSDLY VTDLY FFDLY
 #endif
 	}
 
-	done = 0;
-
-	j = 0;
-
 	if(reportpath) umask(0);
 	
 	listen_sd = socket(AF_INET, SOCK_STREAM, 0);
@@ -595,7 +595,7 @@ TABDLY BSDLY VTDLY FFDLY
 	    perror("ioctl() failed");
 	    close(listen_sd);
 	    exit(-1);
-	  }
+	}
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family      = AF_INET;
@@ -613,6 +613,7 @@ TABDLY BSDLY VTDLY FFDLY
 	/* Set the listen back log  */
 
 	rc = listen(listen_sd, 32);
+
 	if (rc < 0)   {
 	  perror("listen() failed");
 	  close(listen_sd);
@@ -630,8 +631,10 @@ TABDLY BSDLY VTDLY FFDLY
 	fds[1].events = POLLIN;
 
 	nfds = 2;
-
 	timeout = (10 * 1000);
+
+	done = 0;
+	j = 0;
 
 	while (!done)  {
 	  int i, ii;
@@ -675,10 +678,11 @@ TABDLY BSDLY VTDLY FFDLY
 		    strcat(outbuf, buf);
 		    write(1, outbuf, strlen(outbuf));
 		    if(reportpath) 
-		      report(buf, reportpath);
+		      do_report(buf, reportpath);
 
-		    send_2_listners = 1;
-		    
+		    if(report)
+		      send_2_listners = 1;
+
 		    j = -1;
 		  
 		    if(!loop) 
@@ -706,7 +710,6 @@ TABDLY BSDLY VTDLY FFDLY
 	      if (fds[i].revents & POLLIN)  {
 
 		close_conn = FALSE;
-		
 		rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 		if (rc < 0)  {
 		  if (errno != EWOULDBLOCK)  {
@@ -715,19 +718,17 @@ TABDLY BSDLY VTDLY FFDLY
 		  break;
 		}
 		  
-		if (rc == 0)  {
+		if (rc == 0) 
 		  close_conn = TRUE;
-		}
 
 		if(rc > 0) {
 		  len = rc;
 		  rc = send(fds[i].fd, buffer, len, 0);
 		}
 
-		if (rc < 0)  {
+		if (rc < 0)  
 		  close_conn = TRUE;
-		}
-
+		
 		if (close_conn)  {
 		  close(fds[i].fd);
 		  fds[i].fd = -1;
@@ -735,7 +736,7 @@ TABDLY BSDLY VTDLY FFDLY
 		}
 	      }  /* End of existing connection */
 	      fds[i].revents = 0;
-	    } /* Loop through pollable descriptors */
+	    } /* Loop pollable descriptors */
 
 	    /* Squeeze the array and decrement the number of file 
 	       descriptors. We do not need to move back the events 
@@ -771,7 +772,6 @@ TABDLY BSDLY VTDLY FFDLY
 		rc = send(fds[i].fd, outbuf, len, 0);
 		
 		if (rc < 0)  {
-		  perror("  send() failed");
 		  close_conn = TRUE;
 		  break;
 		}
