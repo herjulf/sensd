@@ -1,6 +1,6 @@
 /*
   
- tty_talker over RX/TX serial port output on stdout
+ tty_talker over RX/TRX serial port output on stdout
 
  Robert Olsson  <robert@Radio-Sensors.COM>  most code taken from:
 
@@ -39,7 +39,7 @@
 #include <netinet/in.h>
 #include "devtag-allinone.h"
 
-#define VERSION "3.0 130831"
+#define VERSION "3.1 130902"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -626,10 +626,6 @@ TABDLY BSDLY VTDLY FFDLY
 
 	nfds = 2;
 
-	/* Initialize the timeout to 3 minutes. If no
-	   activity after 3 minutes this program will end.
-	   timeout value is based on milliseconds. */
-
 	timeout = (10 * 1000);
 
 	while (!done)  {
@@ -640,22 +636,16 @@ TABDLY BSDLY VTDLY FFDLY
 	    
 	    rc = poll(fds, nfds, timeout);
 	    send_2_listners = 0;
-
-	    /* Check to see if the poll call failed. */
 	    
 	    if (rc < 0)  {
-	      perror("  poll() failed");
+	      //perror("  poll() failed");
 	      break;
 	    }
 	    
 	    if (rc == 0)  {
 	      /* Timeout placeholder */
-	      
 	      continue;
 	    }
-	    
-	    /* One or more descriptors are readable.  Need to 
-	       determine which ones they are. */
 	    
 	    current_size = nfds;
 	    for (i = 0; i < current_size; i++)   {
@@ -665,18 +655,7 @@ TABDLY BSDLY VTDLY FFDLY
 	      
 	      send_2_listners = 0;
 
-	      /* If revents is not POLLIN, it's an unexpected reslt,
-		 log and end the server.                               */
-	      
-	      if(fds[i].revents != POLLIN)   {
-		printf("  Error! revents = %d\n", fds[i].revents);
-		end_server = TRUE;
-		break;
-	      }
-	      
-	      /* Our USB connection ? */
-
-	      if (fds[i].fd == fd)   {
+	      if (fds[i].fd == fd && fds[i].revents & POLLIN)   {
 
 		res = read(fd, io, BUFSIZ);
 		if(res > 0) ;
@@ -704,96 +683,45 @@ TABDLY BSDLY VTDLY FFDLY
 		    buf[j] = io[ii];
 		  }
 		}
+		fds[i].revents &= ~POLLIN;
 	      }
 
-	      /* Loop through to find the descriptors that returned 
-		 POLLIN and determine whether it's the listening
-		 or the active connection. */
-	      
-	      else if (fds[i].fd == listen_sd)   {
+	      if (fds[i].fd == listen_sd && fds[i].revents & POLLIN)   {
 		
-		/* Accept all incoming connections that are 
-		   queued up on the listening socket before we
-		   oop back and call poll again. */
-		
-		do  {
-		  /* Accept each incoming connection. If
-		     accept fails with EWOULDBLOCK, then we
-		     have accepted all of them. Any other
-		     failure on accept will cause us to end the
-		     server. */
-		  
-		  new_sd = accept(listen_sd, NULL, NULL);
-
-		  if (new_sd < 0)  {
-		    if (errno != EWOULDBLOCK)  {
-		      perror("  accept() failed");
-		      end_server = TRUE;
-		    }
-		    break;
-		  }
-		  /* Add the new incoming connection to the 
-		     pollfd structure */
-		  
-		  printf("  New incoming connection - %d\n", new_sd);
+		new_sd = accept(listen_sd, NULL, NULL);
+		if (new_sd != -1)  {
+		  // printf("  New incoming connection - %d\n", new_sd);
 		  fds[nfds].fd = new_sd;
 		  fds[nfds].events = POLLIN;
 		  nfds++;
-		  
-		  /* Loop back up and accept another incoming 
-		     connection */
-		  
-		} while (new_sd != -1);
+		}
+		fds[i].revents &= ~POLLIN;
 	      }
-	      
-	      /* Not the listening socket nor file input
-		 existing connection must be readable */
 
-	      else  {
+	      if (fds[i].revents & POLLIN)  {
 
 		close_conn = FALSE;
 		
-		/* Receive all incoming data on this socket 
-		   before we loop back and call poll again. */
-		
-		do  {
-		  /* Receive data on this connection until the
-		     recv fails with EWOULDBLOCK. If any other
-		     failure occurs, we will close the
-		     connection. */
-		  
-		  rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-		  if (rc < 0)  {
-		    if (errno != EWOULDBLOCK)  {
-		      perror("  recv() failed");
-		      close_conn = TRUE;
-		    }
-		    break;
-		  }
-		  
-		  /* Check to see if the connection has been
-		     closed by the client*/
-		  
-		  if (rc == 0)  {
-		    printf("  Connection closed\n");
+		rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+		if (rc < 0)  {
+		  if (errno != EWOULDBLOCK)  {
 		    close_conn = TRUE;
-		    break;
 		  }
+		  break;
+		}
+		  
+		if (rc == 0)  {
+		  close_conn = TRUE;
+		}
 
-		  /* Data was received   */
+		if(rc > 0) {
 		  len = rc;
-		  printf("  %d bytes received\n", len);
-		  
-		  /* Echo the data back to the client */
-		  
 		  rc = send(fds[i].fd, buffer, len, 0);
+		}
 
-		  if (rc < 0)  {
-		    perror("  send() failed");
-		    close_conn = TRUE;
-		    break;
-		  }
-		} while(0);
+		if (rc < 0)  {
+		  close_conn = TRUE;
+		}
 
 		if (close_conn)  {
 		  close(fds[i].fd);
@@ -801,12 +729,12 @@ TABDLY BSDLY VTDLY FFDLY
 		  compress_array = TRUE;
 		}
 	      }  /* End of existing connection */
+	      fds[i].revents = 0;
 	    } /* Loop through pollable descriptors */
 
-	    
 	    /* Squeeze the array and decrement the number of file 
 	       descriptors. We do not need to move back the events 
-	       and revents fields because the events will always
+	       and  revents fields because the events will always
 	       be POLLIN in this case, and revents is output.  */
 	    
 	    if (compress_array)  {
