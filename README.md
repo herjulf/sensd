@@ -1,18 +1,18 @@
-sensd - A WSN daemon and supporting utilities
-=============================================
+sensd - A WSN Internet gateway and daemon
+=========================================
 
 Authors
 --------					
 Robert Olsson <robert@Radio-Sensors.COM>
-
 Jens Laas <jens.laas@uadm.uu.se>
 
 Abstract
 --------
 We've outlined, designed and implemented and very simple concept for WSN data
 reports, including collection, storage and retrieval using standard text tools.
-The concept includes a mapping to URI (Unified Resource Identifier) to form
-a WSN caching server similar to CoAP using http-proxy.
+In sensor data can be sent over Internet to active listeners. The concept also 
+includes a mapping to URI (Unified Resource Identifier) to form a WSN caching 
+server similar to CoAP using http-proxy.
 
 All programs are written C, Java-script and bash. And designed for for small
 footprint and minimal dependencies. sensd runs on Raspberry Pi and openwrt.
@@ -29,10 +29,14 @@ from WSN Wireless Sensor Networks. The basic idea is to do a very simple,
 straight-forward and robust framework.
 
 The scenario, One or several mots is connected to USB or serial port to gather 
-received information from connected WSN motes. Data can can visualized in two
-ways.
+received information from connected WSN motes. Data can can visualized in 
+several ways.
 
-*  Data is stored in ASCII with tagging and ID information. Data is conviently 
+*  Sensor data report can be transmitted and propagted thoughout the 
+   Internet. sensd acts as server and sends incoming report to active
+   listeners. 
+
+*  Data is kept in ASCII with tagging and ID information. Data is conviently 
    handled, copied and viewed with standard text utilties of your OS.
 
 *  Last mote report is cached into the file system suitable for URI use. The 
@@ -123,6 +127,18 @@ Meta-data and additional information, descriptions and comments can be stored in
 data file to keep everything in on context. Of course pre-cautions must taken 
 so this auxiliary data can conflict the data. In example to to restrict or escaped
 the '=' sign. It suggested that data is retrieved with seltag or a similar technique.
+
+
+Internet sensor data
+--------------------
+Start sensd with the -report option. This enables reports to be transmitted
+over IP to remote listeners. Default TCP port 1234.
+
+Server side example:
+sensd -report -p1234 /dev/ttyUSB0
+
+Client side. netcat example:
+nc server-ip 1234
 
 
 URI format
