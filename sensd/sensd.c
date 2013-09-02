@@ -75,7 +75,8 @@ void usage_sensd(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-utc] [-ffile] [-Rpath] DEV\n");
+  printf("Usage: sensd [-pport] [-utc] [-ffile] [-Rpath] DEV\n");
+  printf(" -pport TCP server port. Default %d\n", SERVER_PORT);
   printf(" -utc time in UTC\n");
   printf(" -ffile data file. Default is /var/log/sensors.dat\n");
   printf(" -Rpath Path for reports. One dir per sensor. One file per value.\n");
@@ -314,6 +315,7 @@ int main(int ac, char *av[])
 	struct pollfd fds[200];
 	int    nfds = 2, current_size = 0, j;
 	int    send_2_listners;
+	unsigned short port = SERVER_PORT;
 
 	if (strcmp(prog, "tty_talk") == 0)  {
 	  invokation = INV_TTY_TALK;
@@ -389,6 +391,10 @@ int main(int ac, char *av[])
 	    else if (strncmp(av[i], "-R", 2) == 0) {
 	      reportpath = av[i]+2;
 	      if(!*reportpath) reportpath = "/var/lib/sensd";
+	    }
+
+	    else if (strncmp(av[i], "-p", 2) == 0) {
+	      port = atoi(av[i]+2);
 	    }
 
 	    else
@@ -595,7 +601,7 @@ TABDLY BSDLY VTDLY FFDLY
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family      = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port        = htons(SERVER_PORT);
+	addr.sin_port        = htons(port);
 
 	rc = bind(listen_sd, (struct sockaddr *)&addr, sizeof(addr));
  
