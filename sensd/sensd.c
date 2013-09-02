@@ -1,9 +1,8 @@
 /*
-  
- tty_talker over RX/TRX serial port output on stdout
+ Copyright GPL by
+ Robert Olsson  <robert@Radio-Sensors.COM>  
 
- Robert Olsson  <robert@Radio-Sensors.COM>  most code taken from:
-
+ Code used from:
 
  file is part of the minicom communications package,
  *		Copyright 1991-1995 Miquel van Smoorenburg.
