@@ -1,3 +1,22 @@
+
+Client side. Using netcat to connect and listen to the sensd gateway
+to receive report over the Internet.
+
+
+Example 1:
+
 nc Radio-Sensors.COM 1234
+
 2013-09-02 22:43:08 UT=1378154588 E64=fcc23d000000511d PS=0 T=23.00  V_MCU=3.08 UP=1590 V_IN=5.20  V_A3=215   [ADDR=195.37 SEQ=91 RSSI=0 LQI=248 DRP=1.00]
 
+Of course unix tools and utilities and can be combined with netcat. Also
+most useful in this the seltag program in this package to format and extract 
+wanted data from the reports.
+
+Example 2:
+
+nc Radio-Sensors.COM 1234 | seltag 2 ID=%s T=%s
+
+2013-09-03 11:22:15 28be51ce02000031 22.31 
+2013-09-03 11:22:28 2813e3dc0300007f 26.44 
+2013-09-03 11:22:58 2813e3dc0300007f 26.44 
