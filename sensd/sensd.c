@@ -38,7 +38,7 @@
 #include <netinet/in.h>
 #include "devtag-allinone.h"
 
-#define VERSION "3.1 130902"
+#define VERSION "4.0 130909"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -59,8 +59,9 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-pport] [-report] [-utc] [-ffile] [-Rpath] DEV\n");
-  printf(" -report network report enable\n");
+  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] DEV\n");
+  printf(" -report Enable net reports\n");
+  printf(" -cmd  Enable net commands\n");
   printf(" -pport TCP server port. Default %d\n", SERVER_PORT);
   printf(" -utc time in UTC\n");
   printf(" -ffile data file. Default is /var/log/sensors.dat\n");
@@ -70,7 +71,7 @@ void usage(void)
 }
 
 /* Options*/
-int loop, date, utime, utc, background;
+int cmd, date, utime, utc, background;
 long baud;
 
 /*
@@ -284,13 +285,12 @@ int main(int ac, char *av[])
 	int    nfds = 2, current_size = 0, j;
 	int    send_2_listners;
 	unsigned short port = SERVER_PORT;
-	unsigned short report = 0;
+	unsigned short cmd = 0, report = 0;
 
 
 	if (strcmp(prog, "sensd") == 0) {
 	  baud = B38400;
 	  background = 1;
-	  loop = 1;
 	  date = 1;
 	  utime = 1;
 	  utc = 0;
@@ -325,12 +325,6 @@ int main(int ac, char *av[])
 	    else if (strcmp(av[i], "-38400") == 0)
 	      baud = B38400;
 
-	    else if (strcmp(av[i], "-loop") == 0) 
-	      loop = 1;
-
-	    else if (strcmp(av[i], "-date") == 0) 
-	      date = 1;
-
 	    else if (strcmp(av[i], "-utime") == 0) 
 	      utime = 1;
 
@@ -354,6 +348,9 @@ int main(int ac, char *av[])
 
 	    else if (strcmp(av[i], "-report") == 0) 
 	      report = 1;
+
+	    else if (strcmp(av[i], "-cmd") == 0) 
+	      cmd = 1;
 
 	    else
 	      usage();
@@ -601,8 +598,6 @@ TABDLY BSDLY VTDLY FFDLY
 
 		    j = -1;
 		  
-		    if(!loop) 
-		      done = 1;
 		  }
 		  else  {
 		    buf[j] = io[ii];
@@ -640,8 +635,11 @@ TABDLY BSDLY VTDLY FFDLY
 		if(rc > 0) {
 		  len = rc;
 		  buffer[len-1] = 0xd;
-		  rc = write(usb_fd, &buffer, len);
-		  //rc = send(fds[i].fd, buffer, len, 0);
+
+		  if(cmd) 
+		    rc = write(usb_fd, &buffer, len);
+		  else 
+		    rc = send(fds[i].fd, buffer, len, 0);
 		}
 
 		if (rc < 0)  
