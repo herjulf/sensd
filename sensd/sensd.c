@@ -54,23 +54,8 @@ int retry = 6;
 #define TRUE             1
 #define FALSE            0
 
-void usage_tty_talk(void)
-{
-  printf("\ntty_talk sends a string to terminal/USB and reads the response\n");
-  printf("Version %s\n\n", VERSION);
-  printf("tty_talk [-BAUDRATE] [-loop] [-date] [-utc] DEV string\n");
-  printf(" -loop forces repeatable reeds\n");
-  printf(" -date print cur. date/time on each line\n");
-  printf(" -utime time in unix format\n");
-  printf(" -utc time in UTC\n");
-  printf(" -b run in background\n");
-  printf(" -fFILENAME redirect output to FILENAME\n");
-  printf(" Valid baudrates 4800, 9600 (Default), 19200, 38400 bps\n");
-  printf(" Example: tty_talk -38400  /dev/ttyUSB0 q1\n\n");
-  exit(-1);
-}
 
-void usage_sensd(void)
+void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
@@ -85,26 +70,8 @@ void usage_sensd(void)
 }
 
 /* Options*/
-int loop, date, utime, utc, add_preamble, background;
+int loop, date, utime, utc, background;
 long baud;
-
-#define INV_TTY_TALK (1<<0)
-#define INV_SENSD    (1<<1)
-
-unsigned int invokation; 
-
-void usage(void)
-{
-  if(invokation & INV_TTY_TALK) 
-    usage_tty_talk();
-
-  if(invokation & INV_SENSD) 
-    usage_sensd();
-
-  exit(-1);
-}
-
-unsigned char preamble[4] = {0xAA, 0x00, 0xFF, 0x01};
 
 /*
  * Find out name to use for lockfile when locking tty.
@@ -143,7 +110,7 @@ int lockfile_create(void)
   if ((fd = open(lockfile, O_WRONLY | O_CREAT | O_EXCL, 0666)) < 0) {
     return 0;
   } else {
-    snprintf(buf, sizeof(buf),  "%05d tty_talk %.20s\n", (int) getpid(), 
+    snprintf(buf, sizeof(buf),  "%05d sensd %.20s\n", (int) getpid(), 
 	     username);
 
     write(fd, buf, strlen(buf));
@@ -303,13 +270,13 @@ int main(int ac, char *av[])
 	char *filename = NULL;
 	char *reportpath = NULL;
 	int res;
-	int i, done, len, idx;
+	int i, done, len;
 	char *prog = basename (av[0]);
 	int    rc, on = 1;
 	int    listen_sd = -1, new_sd = -1;
-	int    desc_ready, end_server = FALSE, compress_array = FALSE;
+	int    compress_array = FALSE;
 	int    close_conn;
-	char   buffer[80];
+	char   buffer[1024];
 	struct sockaddr_in   addr;
 	int    timeout;
 	struct pollfd fds[200];
@@ -318,18 +285,8 @@ int main(int ac, char *av[])
 	unsigned short port = SERVER_PORT;
 	unsigned short report = 0;
 
-	if (strcmp(prog, "tty_talk") == 0)  {
-	  invokation = INV_TTY_TALK;
-	  baud = B9600;
-	  background = 0;
-	  loop = 0;
-	  date = 0;
-	  utc = 0;
-	  utime = 0;
-	}
 
-	else if (strcmp(prog, "sensd") == 0) {
-	  invokation = INV_SENSD;
+	if (strcmp(prog, "sensd") == 0) {
 	  baud = B38400;
 	  background = 1;
 	  loop = 1;
@@ -378,9 +335,6 @@ int main(int ac, char *av[])
 
 	    else if (strcmp(av[i], "-utc") == 0) 
 	      utc = 1;
-
-	    else if (strcmp(av[i], "-preamble") == 0) 
-	      add_preamble = 1;
 
 	    else if (strcmp(av[i], "-b") == 0) 
 	      background = 1;
@@ -489,43 +443,8 @@ TABDLY BSDLY VTDLY FFDLY
 
 	/* Term ok deal w. text to send */
 	
-	idx = 0;
-
-	/* Only tty_talk sends commnad */
-	if( invokation & INV_TTY_TALK ) {
-	  
-	  i++;
-	  for( ; i < ac; i++) {
-	    len = strlen(av[i]);
-	    strncpy(&io[idx], av[i], len);
-	    idx += len;
-	    io[idx++] = '\r';
-	  }
-	  
-	  res = write(usb_fd, io, idx);
-	  if(res < 0 ) {
-	    perror("write faild");
-	    goto error;
-	  }
-	  
-	  if(add_preamble) {
-	    len = sizeof(preamble);
-	    strncpy(&io[idx], preamble, len);
-	    idx += len;
-	  }
-	  
-	  i++;
-	  for( ; i < ac; i++) {
-	    len = strlen(av[i]);
-	    strncpy(&io[idx], av[i], len);
-	    idx += len;
-	    io[idx++] = '\r';
-	  }
-	} 
-	
 	if(background) {
-	  int i, lfp;
-	  char str[10];
+	  int i;
 	  if(getppid() == 1) 
 	    return 0; /* Already a daemon */
 
@@ -723,7 +642,9 @@ TABDLY BSDLY VTDLY FFDLY
 
 		if(rc > 0) {
 		  len = rc;
-		  rc = send(fds[i].fd, buffer, len, 0);
+		  buffer[len-1] = 0xd;
+		  rc = write(usb_fd, &buffer, len);
+		  //rc = send(fds[i].fd, buffer, len, 0);
 		}
 
 		if (rc < 0)  
