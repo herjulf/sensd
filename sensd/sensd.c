@@ -672,7 +672,7 @@ TABDLY BSDLY VTDLY FFDLY
 		for(ii=0; !done && ii < res; ii++, j++)  {
 		  if(io[ii] == END_OF_FILE) {
 		    outbuf[0] = 0;
-		    if(date || utime)
+		    if(buf[0] == '&' && buf[1] == ':' && (date || utime))
 		      print_date(outbuf);
 		    buf[j] = 0;
 		    strcat(outbuf, buf);
