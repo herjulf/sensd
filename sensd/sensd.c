@@ -265,6 +265,7 @@ int main(int ac, char *av[])
 {
 	struct termios tp, old;
 	int usb_fd;
+	int file_fd;
 	char io[BUFSIZ];
 	char buf[2*BUFSIZ];
 	char *filename = NULL;
@@ -368,12 +369,8 @@ int main(int ac, char *av[])
 	}
 
 	if(filename) {
-		int ofd;
-		ofd = open(filename, O_CREAT|O_RDWR|O_APPEND, 0644);
-		if(ofd >= 0) {
-			dup2(ofd, 1);
-			close(ofd);
-		} else {
+		file_fd = open(filename, O_CREAT|O_RDWR|O_APPEND, 0644);
+		if(file_fd < 0) {
 			fprintf(stderr, "Failed to open '%s'\n", filename);
 			exit(2);
 		}
@@ -461,7 +458,7 @@ TABDLY BSDLY VTDLY FFDLY
 	  setsid(); /* obtain a new process group */
 	  for (i = getdtablesize(); i >= 0; --i) {
 		  if(i == usb_fd) continue;
-		  if(i == 1) continue;
+		  if(i == file_fd) continue;
 	    close(i); /* close all descriptors */
 	  }
 
@@ -595,7 +592,7 @@ TABDLY BSDLY VTDLY FFDLY
 		      print_date(outbuf);
 		    buf[j] = 0;
 		    strcat(outbuf, buf);
-		    write(1, outbuf, strlen(outbuf));
+		    write(file_fd, outbuf, strlen(outbuf));
 		    if(reportpath) 
 		      do_report(buf, reportpath);
 
@@ -688,7 +685,6 @@ TABDLY BSDLY VTDLY FFDLY
 		if (fds[i].fd == listen_sd)
 		  continue;
 		
-		write(1, outbuf, strlen(outbuf));
 		len = strlen(outbuf);
 		rc = send(fds[i].fd, outbuf, len, 0);
 		
