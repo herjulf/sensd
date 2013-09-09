@@ -297,7 +297,7 @@ int do_report(const char *buf, const char *reportpath)
 int main(int ac, char *av[]) 
 {
 	struct termios tp, old;
-	int fd;
+	int usb_fd;
 	char io[BUFSIZ];
 	char buf[2*BUFSIZ];
 	char *filename = NULL;
@@ -433,15 +433,15 @@ int main(int ac, char *av[])
 	    sleep(1);
 	}
 
-	if ((fd = open(devtag_get(av[i]), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
+	if ((usb_fd = open(devtag_get(av[i]), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
 	  perror("bad terminal device, try another");
 	  exit(-1);
 	}
 	
-	fcntl(fd, F_GETFL);
-	fcntl(fd, F_SETFL, O_RDWR);
+	fcntl(usb_fd, F_GETFL);
+	fcntl(usb_fd, F_SETFL, O_RDWR);
 
-	if (tcgetattr(fd, &tp) < 0) {
+	if (tcgetattr(usb_fd, &tp) < 0) {
 		perror("Couldn't get term attributes");
 		exit(-1);
 	}
@@ -475,14 +475,14 @@ TABDLY BSDLY VTDLY FFDLY
 
 	tp.c_lflag &= ~(ECHO  | ECHONL);
 
-	tcflush(fd, TCIFLUSH);
+	tcflush(usb_fd, TCIFLUSH);
 
 	/* set output and input baud rates */
 
 	cfsetospeed(&tp, baud);
 	cfsetispeed(&tp, baud);
 
-	if (tcsetattr(fd, TCSANOW, &tp) < 0) {
+	if (tcsetattr(usb_fd, TCSANOW, &tp) < 0) {
 		perror("Couldn't set term attributes");
 		goto error;
 	}
@@ -502,7 +502,7 @@ TABDLY BSDLY VTDLY FFDLY
 	    io[idx++] = '\r';
 	  }
 	  
-	  res = write(fd, io, idx);
+	  res = write(usb_fd, io, idx);
 	  if(res < 0 ) {
 	    perror("write faild");
 	    goto error;
@@ -541,7 +541,7 @@ TABDLY BSDLY VTDLY FFDLY
 	  
 	  setsid(); /* obtain a new process group */
 	  for (i = getdtablesize(); i >= 0; --i) {
-		  if(i == fd) continue;
+		  if(i == usb_fd) continue;
 		  if(i == 1) continue;
 	    close(i); /* close all descriptors */
 	  }
@@ -627,7 +627,7 @@ TABDLY BSDLY VTDLY FFDLY
 	fds[0].fd = listen_sd;
 	fds[0].events = POLLIN;
 
-	fds[1].fd = fd;
+	fds[1].fd = usb_fd;
 	fds[1].events = POLLIN;
 
 	nfds = 2;
@@ -663,9 +663,9 @@ TABDLY BSDLY VTDLY FFDLY
 	      
 	      send_2_listners = 0;
 
-	      if (fds[i].fd == fd && fds[i].revents & POLLIN)   {
+	      if (fds[i].fd == usb_fd && fds[i].revents & POLLIN)   {
 
-		res = read(fd, io, BUFSIZ);
+		res = read(usb_fd, io, BUFSIZ);
 		if(res > 0) ;
 		else done = 0;
 		
@@ -761,7 +761,7 @@ TABDLY BSDLY VTDLY FFDLY
 	      current_size = nfds;
 	      for (i = 0; i < current_size; i++)   {
 		
-		if (fds[i].fd == fd)
+		if (fds[i].fd == usb_fd)
 		  continue;
 		
 		if (fds[i].fd == listen_sd)
@@ -778,7 +778,7 @@ TABDLY BSDLY VTDLY FFDLY
 	      }
 	    }
 	}
-	if (tcsetattr(fd, TCSANOW, &old) < 0) {
+	if (tcsetattr(usb_fd, TCSANOW, &old) < 0) {
 	  perror("Couldn't restore term attributes");
 	  exit(-1);
 	}
@@ -786,7 +786,7 @@ TABDLY BSDLY VTDLY FFDLY
 	lockfile_remove();
 	exit(0);
  error:
-	if (tcsetattr(fd, TCSANOW, &old) < 0) {
+	if (tcsetattr(usb_fd, TCSANOW, &old) < 0) {
 	  perror("Couldn't restore term attributes");
 	}
 	exit(-1);
