@@ -1,0 +1,24 @@
+Ideas 2013-09-25
+
+1)
+/etc/SIDS (Sensors ID'S) something like  /etc/hosts
+to get human readable information.
+
+
+ID=28be51ce02000031 apple-tree
+E64=XXXXXXXXXXXXXXX ups
+
+2)
+SIDS in DNS system.
+
+
+3)
+Net synchronizing of two or more sensd. To avoid bogus reports etc
+
+
+4)
+Have sensd to cache last report from a sensor with a time-stamp.
+Should be able to read out from server. 
+
+
+
