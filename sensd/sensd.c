@@ -205,10 +205,10 @@ void print_report_header(int gps_fd, char *datebuf)
     tp = localtime ( &raw_time );
 
   if(date) {
-	  sprintf(buf, "%04d-%02d-%02d %2d:%02d:%02d ",
+	  sprintf(buf, "%04d-%02d-%02d %2d:%02d:%02d TZ=%s ",
 		  tp->tm_year+1900, tp->tm_mon+1, 
 		  tp->tm_mday, tp->tm_hour, 
-		  tp->tm_min, tp->tm_sec);
+		  tp->tm_min, tp->tm_sec, tp->tm_zone);
 	  strcat(datebuf, buf);
   }
 
