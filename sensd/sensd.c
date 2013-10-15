@@ -38,7 +38,7 @@
 #include <netinet/in.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.0 130909"
+#define VERSION "4.1 131015"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -59,16 +59,22 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] DEV\n");
+  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] DEV\n");
   printf(" -report Enable net reports\n");
   printf(" -cmd  Enable net commands\n");
   printf(" -pport TCP server port. Default %d\n", SERVER_PORT);
   printf(" -utc time in UTC\n");
   printf(" -ffile data file. Default is /var/log/sensors.dat\n");
   printf(" -Rpath Path for reports. One dir per sensor. One file per value.\n");
-  printf("Example: sensd  /dev/ttyUSB0\n");
+  printf(" -ggpsdev Device for gps\n");
+  printf("Example 1: sensd  /dev/ttyUSB0\n");
+  printf("Example 2: sensd -report -f/dev/null -g/dev/ttyUSB1 /dev/ttyUSB0\n");
   exit(-1);
 }
+
+
+/* Function declarations */
+int gps_read(int fd, float *lon, float *lat);
 
 /* Options*/
 int cmd, date, utime, utc, background;
@@ -183,8 +189,7 @@ int get_lock()
   return 1;
 }
 
-
-void print_date(char *datebuf)
+void print_report_header(int gps_fd, char *datebuf)
 {
   time_t raw_time;
   struct tm *tp;
@@ -210,6 +215,18 @@ void print_date(char *datebuf)
   if(utime) {
 	  sprintf(buf, "UT=%ld ", raw_time);
 	  strcat(datebuf, buf);
+  }
+
+  if(gps_fd > 0) {
+    float lon, lat;
+    int res = gps_read(gps_fd, &lon, &lat);
+    if ( res ) {
+	  sprintf(buf, "GWGPS_LON=%f ", lon);
+	  strcat(datebuf, buf);
+
+	  sprintf(buf, "GWGPS_LAT=%f ", lat);
+	  strcat(datebuf, buf);
+    }
   }
 }
 
@@ -267,9 +284,11 @@ int main(int ac, char *av[])
 	struct termios tp, old;
 	int usb_fd;
 	int file_fd;
+	int gps_fd;
 	char io[BUFSIZ];
 	char buf[2*BUFSIZ];
 	char *filename = NULL;
+	char *gpsdev = NULL;
 	char *reportpath = NULL;
 	int res;
 	int i, done, len;
@@ -337,6 +356,9 @@ int main(int ac, char *av[])
 	    else if (strncmp(av[i], "-f", 2) == 0) 
 	      filename = av[i]+2;
 
+	    else if (strncmp(av[i], "-g", 2) == 0) 
+	      gpsdev = av[i]+2;
+
 	    else if (strncmp(av[i], "-R", 2) == 0) {
 	      reportpath = av[i]+2;
 	      if(!*reportpath) reportpath = "/var/lib/sensd";
@@ -368,6 +390,14 @@ int main(int ac, char *av[])
 	if(filename) {
 		file_fd = open(filename, O_CREAT|O_RDWR|O_APPEND, 0644);
 		if(file_fd < 0) {
+			fprintf(stderr, "Failed to open '%s'\n", filename);
+			exit(2);
+		}
+	}
+
+	if(gpsdev) {
+	  gps_fd = open(devtag_get(gpsdev), O_RDWR | O_NOCTTY | O_NONBLOCK);
+	  if(gps_fd < 0) {
 			fprintf(stderr, "Failed to open '%s'\n", filename);
 			exit(2);
 		}
@@ -454,6 +484,7 @@ TABDLY BSDLY VTDLY FFDLY
 	  
 	  setsid(); /* obtain a new process group */
 	  for (i = getdtablesize(); i >= 0; --i) {
+		  if(i == gps_fd) continue;
 		  if(i == usb_fd) continue;
 		  if(i == file_fd) continue;
 	    close(i); /* close all descriptors */
@@ -586,7 +617,7 @@ TABDLY BSDLY VTDLY FFDLY
 		  if(io[ii] == END_OF_FILE) {
 		    outbuf[0] = 0;
 		    if(buf[0] == '&' && buf[1] == ':' && (date || utime))
-		      print_date(outbuf);
+		      print_report_header(gps_fd, outbuf);
 		    buf[j] = 0;
 		    strcat(outbuf, buf);
 		    write(file_fd, outbuf, strlen(outbuf));
@@ -706,3 +737,137 @@ TABDLY BSDLY VTDLY FFDLY
 	}
 	exit(-1);
 }
+
+
+#define BUFLEN  124
+#define KNOT_TO_KMPH 1.852 
+
+int gps_read(int fd, float *lon, float *lat)
+{
+
+  int bp;
+  int debug = 0;
+
+  struct {
+    int   fd;         /* file descriptor */
+    short events;     /* requested events */
+    short revents;    /* returned events */
+  } pollfd;
+
+  float course, speed;
+  char foo[6], buf[BUFLEN], c[1];
+  char valid;
+  int try, res, maxtry = 20;
+  unsigned int year, mon, day, hour, min, sec;
+  int done = 0;
+
+  for(try = 0; !done && try < maxtry; try++) {
+
+    bp = 0;
+
+    while(bp < BUFLEN) {
+      int n, ok;
+      char b;
+      struct pollfd pfd;
+      
+      pfd.fd = fd;
+      pfd.events = POLLIN;
+      ok = poll( &pfd, 1, -1 );
+      
+      if ( ok < 0 ) 
+	continue;
+      
+      n = read(fd, &b, 1);
+      
+      if( n < 0)
+	continue;
+     
+      buf[bp++] = b;
+      if(b == '\n') 
+	break;
+    }
+
+    if(strncmp("$GPRMC", buf, 6) == 0 ) {
+      
+      if(debug)
+	printf("%s", buf);
+      
+      res = sscanf(buf, 
+		   "$GPRMC,%2d%2d%2d.%3c,%1c,%f,%1c,%f,%1c,%f,%f,%2d%2d%2d",
+		   &hour, &min, &sec, foo, &valid, lat, c,  lon, c, &speed, &course, &day, &mon, &year);
+      
+      if(res == 14 && valid == 'A') {
+	
+	if( 1 ) {
+	  *lat /= 100;
+	  *lon /= 100;
+	  done = 1;
+	}
+      }
+    }
+  }
+  if(!done)
+    return(-1);
+  else
+    return 1;
+}
+
+/*
+We get: $GPGSA,A,3,21,18,03,22,19,27,07,08,26,16,24,,1.7,0.8,1.5*36
+
+$GPGSA,A,3,04,05,,09,12,,,24,,,,,2.5,1.3,2.1*39
+
+Where:
+     GSA      Satellite status
+     A        Auto selection of 2D or 3D fix (M = manual) 
+     3        3D fix - values include: 1 = no fix
+                                       2 = 2D fix
+                                       3 = 3D fix
+     04,05... PRNs of satellites used for fix (space for 12) 
+     2.5      PDOP (dilution of precision) 
+     1.3      Horizontal dilution of precision (HDOP) 
+     2.1      Vertical dilution of precision (VDOP)
+     *39      the checksum data, always begins with *
+
+*/
+
+
+/*
+
+We get: $GPRMC,080642.000,A,5951.0512,N,01736.8681,E,0.10,345.68,140307,,*0D      
+
+$GPRMC,hhmmss.ss,A,llll.ll,a,yyyyy.yy,a,x.x,x.x,ddmmyy,x.x,a*hh
+
+
+
+GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A
+
+Where:
+     RMC          Recommended Minimum sentence C
+     123519       Fix taken at 12:35:19 UTC
+     A            Status A=active or V=Void.
+     4807.038,N   Latitude 48 deg 07.038' N
+     01131.000,E  Longitude 11 deg 31.000' E
+     022.4        Speed over the ground in knots
+     084.4        Track angle in degrees True
+     230394       Date - 23rd of March 1994
+     003.1,W      Magnetic Variation
+     *6A          The checksum data, always begins with *
+
+
+RMC  = Recommended Minimum Specific GPS/TRANSIT Data
+
+1    = UTC of position fix
+2    = Data status (V=navigation receiver warning)
+3    = Latitude of fix
+4    = N or S
+5    = Longitude of fix
+6    = E or W
+7    = Speed over ground in knots
+8    = Track made good in degrees True
+9    = UT date
+10   = Magnetic variation degrees (Easterly var. subtracts from true course)
+11   = E or W
+12   = Checksum
+
+*/
