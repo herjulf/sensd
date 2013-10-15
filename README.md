@@ -104,6 +104,7 @@ Indicator) and LQI (Link Quality Indicator)
 Example of tags used:
 
 *   UT= Unix time                    (Id)
+*   TZ= Time Zone                    (String)
 *   ID= Unique 64 bit ID             (S)
 *   E64= EUI-64 Unique 64 bit ID     (S)
 *   T= temp in Celcius               (F)
