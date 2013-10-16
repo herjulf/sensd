@@ -291,7 +291,7 @@ int main(int ac, char *av[])
 	char *gpsdev = NULL;
 	char *reportpath = NULL;
 	int res;
-	int i, done, len;
+	int i, len;
 	char *prog = basename (av[0]);
 	int    rc, on = 1;
 	int    listen_sd = -1, new_sd = -1;
@@ -605,10 +605,9 @@ TABDLY BSDLY VTDLY FFDLY
 	nfds = 2;
 	timeout = (10 * 1000);
 
-	done = 0;
 	j = 0;
 
-	while (!done)  {
+	while (1)  {
 	  int i, ii;
 	    char outbuf[512];
 
@@ -638,10 +637,10 @@ TABDLY BSDLY VTDLY FFDLY
 	      if (fds[i].fd == usb_fd && fds[i].revents & POLLIN)   {
 
 		res = read(usb_fd, io, BUFSIZ);
-		if(res > 0) ;
-		else done = 0;
+		if(res > BUFSIZ) 
+		  exit(-1);
 		
-		for(ii=0; !done && ii < res; ii++, j++)  {
+		for(ii=0; ii < res; ii++, j++)  {
 		  if(io[ii] == END_OF_FILE) {
 		    outbuf[0] = 0;
 		    if(buf[0] == '&' && buf[1] == ':' && (date || utime))
