@@ -301,7 +301,6 @@ int main(int ac, char *av[])
 	int    close_conn;
 	char   buffer[BUFSIZE];
 	struct sockaddr_in   addr;
-	int    timeout;
 	struct pollfd fds[200];
 	int    nfds = 2, current_size = 0, j;
 	int    send_2_listners;
@@ -605,7 +604,6 @@ TABDLY BSDLY VTDLY FFDLY
 	fds[1].events = POLLIN;
 
 	nfds = 2;
-	timeout = (10 * 1000);
 
 	j = 0;
 
@@ -613,9 +611,7 @@ TABDLY BSDLY VTDLY FFDLY
 	  int i, ii;
 	    char outbuf[512];
 
-	    timeout = (10 * 1000);
-	    
-	    rc = poll(fds, nfds, timeout);
+	    rc = poll(fds, nfds, 0);
 	    send_2_listners = 0;
 	    
 	    if (rc < 0)  {
