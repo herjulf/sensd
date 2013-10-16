@@ -49,6 +49,8 @@ char username[16];
 int pid;
 int retry = 6;
 
+
+#define BUFSIZE 1024
 #define SERVER_PORT  1234
 
 #define TRUE             1
@@ -285,8 +287,8 @@ int main(int ac, char *av[])
 	int usb_fd;
 	int file_fd;
 	int gps_fd;
-	char io[BUFSIZ];
-	char buf[2*BUFSIZ];
+	char io[BUFSIZE];
+	char buf[BUFSIZE];
 	char *filename = NULL;
 	char *gpsdev = NULL;
 	char *reportpath = NULL;
@@ -297,7 +299,7 @@ int main(int ac, char *av[])
 	int    listen_sd = -1, new_sd = -1;
 	int    compress_array = FALSE;
 	int    close_conn;
-	char   buffer[1024];
+	char   buffer[BUFSIZE];
 	struct sockaddr_in   addr;
 	int    timeout;
 	struct pollfd fds[200];
@@ -634,17 +636,28 @@ TABDLY BSDLY VTDLY FFDLY
 	      
 	      send_2_listners = 0;
 
+	      /* Buffers used
+		 io      : USB read buffer
+		 outbuf  : whar's written to sensors.dat and port listers
+		 buf temp: split USB read code
+		 buffer  : read buffer from port listerners
+	      */
+
 	      if (fds[i].fd == usb_fd && fds[i].revents & POLLIN)   {
 
-		res = read(usb_fd, io, BUFSIZ);
-		if(res > BUFSIZ) 
-		  exit(-1);
+		res = read(usb_fd, io, BUFSIZE);
+		if(res > BUFSIZE);
+		else
+		  strcat(buf, "ERR read");
 		
 		for(ii=0; ii < res; ii++, j++)  {
 		  if(io[ii] == END_OF_FILE) {
 		    outbuf[0] = 0;
 		    if(buf[0] == '&' && buf[1] == ':' && (date || utime))
 		      print_report_header(gps_fd, outbuf);
+		    else 
+		      strcat(outbuf, "ERR missing signature");
+
 		    buf[j] = 0;
 		    strcat(outbuf, buf);
 		    write(file_fd, outbuf, strlen(outbuf));
