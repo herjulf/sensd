@@ -220,7 +220,7 @@ void print_report_header(int gps_fd, char *datebuf)
   if(gps_fd > 0) {
     float lon, lat;
     int res = gps_read(gps_fd, &lon, &lat);
-    if ( res ) {
+    if ( res > 0 ) {
 	  sprintf(buf, "GWGPS_LON=%f ", lon);
 	  strcat(datebuf, buf);
 
@@ -398,11 +398,39 @@ int main(int ac, char *av[])
 	if(gpsdev) {
 	  gps_fd = open(devtag_get(gpsdev), O_RDWR | O_NOCTTY | O_NONBLOCK);
 	  if(gps_fd < 0) {
-			fprintf(stderr, "Failed to open '%s'\n", filename);
+			fprintf(stderr, "Failed to open '%s'\n", gpsdev);
 			exit(2);
-		}
+	  }
+	
+	  fcntl(gps_fd, F_GETFL);
+	  fcntl(gps_fd, F_SETFL, O_RDWR);
+	  
+	  if (tcgetattr(gps_fd, &tp) < 0) {
+	    perror("Couldn't get term attributes");
+	    exit(-1);
+	  }
+	  old = tp;
+	  
+	  /* 8 bits + baud rate + local control */
+	  tp.c_cflag = B4800 | CS8 | CLOCAL | CREAD;
+	  tp.c_oflag = 0; /* Raw Input */
+	  tp.c_lflag = 0; /* No conoical */
+	  tp.c_oflag &= ~(OLCUC|OCRNL|ONOCR|ONLRET|OFILL|OFDEL|NLDLY|CRDLY);
+	  
+	  /* ignore CR, ignore parity */
+	  tp.c_iflag = ~(IGNBRK|PARMRK|INPCK|INLCR|IUCLC|IXOFF) |
+	    BRKINT|IGNPAR|ICRNL|IXON|ISIG|ICANON;
+	  
+	  tp.c_lflag &= ~(ECHO  | ECHONL);
+	  
+	  tcflush(gps_fd, TCIFLUSH);
+	  
+	  /* set output and input baud rates */
+	  
+	  cfsetospeed(&tp, baud);
+	  cfsetispeed(&tp, baud);
 	}
-
+	
 	strncpy(dial_tty, devtag_get(av[i]), sizeof(dial_tty));
 
 	while (! get_lock()) {
@@ -757,7 +785,7 @@ int gps_read(int fd, float *lon, float *lat)
   float course, speed;
   char foo[6], buf[BUFLEN], c[1];
   char valid;
-  int try, res, maxtry = 20;
+  int try, res, maxtry = 10;
   unsigned int year, mon, day, hour, min, sec;
   int done = 0;
 
