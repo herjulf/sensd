@@ -281,9 +281,57 @@ int do_report(const char *buf, const char *reportpath)
 	return 0;
 }
 
+int set_term(int fd, int baud, struct termios tp)
+{
+
+	fcntl(fd, F_GETFL);
+	fcntl(fd, F_SETFL, O_RDWR);
+
+/*
+SANE is a composite flag that sets the following parameters from termio(M):
+
+CREAD BRKINT IGNPAR ICRNL IXON ISIG ICANON
+ECHO ECHOK OPOST ONLCR
+
+SANE also clears the following modes:
+
+CLOCAL
+IGNBRK PARMRK INPCK INLCR IUCLC IXOFF
+XCASE ECHOE ECHONL NOFLSH
+OLCUC OCRNL ONOCR ONLRET OFILL OFDEL NLDLY CRDLY
+TABDLY BSDLY VTDLY FFDLY 
+
+*/
+	/* 8 bits + baud rate + local control */
+	tp.c_cflag = baud | CS8 | CLOCAL | CREAD;
+	tp.c_oflag = 0; /* Raw Input */
+	tp.c_lflag = 0; /* No conoical */
+	tp.c_oflag &= ~(OLCUC|OCRNL|ONOCR|ONLRET|OFILL|OFDEL|NLDLY|CRDLY);
+
+
+	/* ignore CR, ignore parity */
+	tp.c_iflag = ~(IGNBRK|PARMRK|INPCK|INLCR|IUCLC|IXOFF) |
+	  BRKINT|IGNPAR|ICRNL|IXON|ISIG|ICANON;
+
+	tp.c_lflag &= ~(ECHO  | ECHONL);
+
+	tcflush(fd, TCIFLUSH);
+
+	/* set output and input baud rates */
+
+	cfsetospeed(&tp, baud);
+	cfsetispeed(&tp, baud);
+
+	if (tcsetattr(fd, TCSANOW, &tp) < 0) {
+		perror("Couldn't set term attributes");
+		return(-1);
+	}
+	return 1;
+}
+
 int main(int ac, char *av[]) 
 {
-	struct termios tp, old;
+  struct termios tp, tp_usb_old, tp_gps_old;
 	int usb_fd;
 	int file_fd;
 	int gps_fd;
@@ -399,42 +447,23 @@ int main(int ac, char *av[])
 	if(gpsdev) {
 	  gps_fd = open(devtag_get(gpsdev), O_RDWR | O_NOCTTY | O_NONBLOCK);
 	  if(gps_fd < 0) {
-			fprintf(stderr, "Failed to open '%s'\n", gpsdev);
-			exit(2);
+	    fprintf(stderr, "Failed to open '%s'\n", gpsdev);
+	    exit(2);
 	  }
-	
-	  fcntl(gps_fd, F_GETFL);
-	  fcntl(gps_fd, F_SETFL, O_RDWR);
 	  
 	  if (tcgetattr(gps_fd, &tp) < 0) {
-	    perror("Couldn't get term attributes");
-	    exit(-1);
+		perror("Couldn't get term attributes");
+		exit(-1);
 	  }
-	  old = tp;
-	  
-	  /* 8 bits + baud rate + local control */
-	  tp.c_cflag = B4800 | CS8 | CLOCAL | CREAD;
-	  tp.c_oflag = 0; /* Raw Input */
-	  tp.c_lflag = 0; /* No conoical */
-	  tp.c_oflag &= ~(OLCUC|OCRNL|ONOCR|ONLRET|OFILL|OFDEL|NLDLY|CRDLY);
-	  
-	  /* ignore CR, ignore parity */
-	  tp.c_iflag = ~(IGNBRK|PARMRK|INPCK|INLCR|IUCLC|IXOFF) |
-	    BRKINT|IGNPAR|ICRNL|IXON|ISIG|ICANON;
-	  
-	  tp.c_lflag &= ~(ECHO  | ECHONL);
-	  
-	  tcflush(gps_fd, TCIFLUSH);
-	  
-	  /* set output and input baud rates */
-	  
-	  cfsetospeed(&tp, baud);
-	  cfsetispeed(&tp, baud);
-	}
-	
-	strncpy(dial_tty, devtag_get(av[i]), sizeof(dial_tty));
+	  tp_gps_old = tp;
 
-	while (! get_lock()) {
+	  if( set_term(gps_fd, B4800, tp) != 1)
+	    exit(-1);
+	}
+	  
+	  strncpy(dial_tty, devtag_get(av[i]), sizeof(dial_tty));
+
+	  while (! get_lock()) {
 	    if(--retry == 0)
 	      exit(-1);
 	    sleep(1);
@@ -445,54 +474,16 @@ int main(int ac, char *av[])
 	  exit(-1);
 	}
 	
-	fcntl(usb_fd, F_GETFL);
-	fcntl(usb_fd, F_SETFL, O_RDWR);
-
 	if (tcgetattr(usb_fd, &tp) < 0) {
 		perror("Couldn't get term attributes");
 		exit(-1);
 	}
-	old = tp;
+	tp_usb_old = tp;
 
-/*
-SANE is a composite flag that sets the following parameters from termio(M):
-
-CREAD BRKINT IGNPAR ICRNL IXON ISIG ICANON
-ECHO ECHOK OPOST ONLCR
-
-SANE also clears the following modes:
-
-CLOCAL
-IGNBRK PARMRK INPCK INLCR IUCLC IXOFF
-XCASE ECHOE ECHONL NOFLSH
-OLCUC OCRNL ONOCR ONLRET OFILL OFDEL NLDLY CRDLY
-TABDLY BSDLY VTDLY FFDLY 
-
-*/
-	/* 8 bits + baud rate + local control */
-	tp.c_cflag = baud | CS8 | CLOCAL | CREAD;
-	tp.c_oflag = 0; /* Raw Input */
-	tp.c_lflag = 0; /* No conoical */
-	tp.c_oflag &= ~(OLCUC|OCRNL|ONOCR|ONLRET|OFILL|OFDEL|NLDLY|CRDLY);
+	if( set_term(usb_fd, baud, tp) != 1)
+	  exit(-1);
 
 
-	/* ignore CR, ignore parity */
-	tp.c_iflag = ~(IGNBRK|PARMRK|INPCK|INLCR|IUCLC|IXOFF) |
-	  BRKINT|IGNPAR|ICRNL|IXON|ISIG|ICANON;
-
-	tp.c_lflag &= ~(ECHO  | ECHONL);
-
-	tcflush(usb_fd, TCIFLUSH);
-
-	/* set output and input baud rates */
-
-	cfsetospeed(&tp, baud);
-	cfsetispeed(&tp, baud);
-
-	if (tcsetattr(usb_fd, TCSANOW, &tp) < 0) {
-		perror("Couldn't set term attributes");
-		goto error;
-	}
 
 	/* Term ok deal w. text to send */
 	
@@ -760,15 +751,30 @@ TABDLY BSDLY VTDLY FFDLY
 	      }
 	    }
 	}
-	if (tcsetattr(usb_fd, TCSANOW, &old) < 0) {
+
+	if (tcsetattr(usb_fd, TCSANOW, &tp_usb_old) < 0) {
 	  perror("Couldn't restore term attributes");
 	  exit(-1);
+	}
+
+	if(gpsdev) {
+	  if (tcsetattr(gps_fd, TCSANOW, &tp_usb_old) < 0) {
+	    perror("Couldn't restore term attributes");
+	    exit(-1);
+	  }
 	}
 	
 	lockfile_remove();
 	exit(0);
  error:
-	if (tcsetattr(usb_fd, TCSANOW, &old) < 0) {
+	if(gpsdev) {
+	  if (tcsetattr(gps_fd, TCSANOW, &tp_usb_old) < 0) {
+	    perror("Couldn't restore term attributes");
+	    exit(-1);
+	  }
+	}
+
+	if (tcsetattr(usb_fd, TCSANOW, &tp_gps_old) < 0) {
 	  perror("Couldn't restore term attributes");
 	}
 	exit(-1);
