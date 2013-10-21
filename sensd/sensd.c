@@ -193,7 +193,7 @@ int get_lock()
   return 1;
 }
 
-void print_report_header(int gps_fd, char *datebuf)
+void print_report_header(char *gpsdev, char *datebuf)
 {
   time_t raw_time;
   struct tm *tp;
@@ -221,14 +221,12 @@ void print_report_header(int gps_fd, char *datebuf)
 	  strcat(datebuf, buf);
   }
 
-  if(gps_fd > 0) {
-    if ( gps_fd ) {
-	  sprintf(buf, "GWGPS_LON=%f ", *gps_lon);
-	  strcat(datebuf, buf);
+  if(gpsdev) {
+    sprintf(buf, "GWGPS_LON=%f ", *gps_lon);
+    strcat(datebuf, buf);
 
-	  sprintf(buf, "GWGPS_LAT=%f ", *gps_lat);
-	  strcat(datebuf, buf);
-    }
+    sprintf(buf, "GWGPS_LAT=%f ", *gps_lat);
+    strcat(datebuf, buf);
   }
 }
 
@@ -485,7 +483,7 @@ int main(int ac, char *av[])
 	  exit(-1);
 
 
-	if(gps_fd) {
+	if(gpsdev) {
 	  gps_lat = mmap(NULL, sizeof(gps_lat), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 	  if( gps_lat == (void *) -1) {
 	    perror("mmap");
@@ -517,7 +515,7 @@ int main(int ac, char *av[])
 
 	  /* gps child */
 
-	  if( fork() == 0)  {
+	  if( gpsdev && fork() == 0)  {
 	    int j;
 	    setsid(); /* obtain a new process group */
 	    for (j = getdtablesize(); j >= 0; --j) {
@@ -680,7 +678,7 @@ int main(int ac, char *av[])
 		  if(io[ii] == END_OF_FILE) {
 		    outbuf[0] = 0;
 		    if(buf[0] == '&' && buf[1] == ':' && (date || utime))
-		      print_report_header(gps_fd, outbuf);
+		      print_report_header(gpsdev, outbuf);
 		    else 
 		      strcat(outbuf, "ERR missing signature");
 
@@ -791,7 +789,7 @@ int main(int ac, char *av[])
 	    }
 	}
 
-	if(gps_fd) {
+	if(gpsdev) {
 	  munmap(gps_lon, sizeof(gps_lon));
 	  munmap(gps_lat, sizeof(gps_lat));
 	}
