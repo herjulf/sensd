@@ -132,10 +132,14 @@ so this auxiliary data can conflict the data. In example to to restrict or escap
 the '=' sign. It suggested that data is retrieved with seltag or a similar technique.
 
 
-Special delimiter 
+Special charaters 
 -----------------
-THe &: is used in the report message. The idea is to distinguish between data
+&: is used in the report message. The idea is to distinguish between data
 report and responses to commands. This not yet implemented. 
+
+[] The information between brackets [] is supplied by the receiving or sink node
+and not by the sending. For example Receiver Signal Strength Indicator (RSSI) 
+and Link Quality Indicator (LQI) origins from the receiving node. 
 
 
 Internet sensor data
