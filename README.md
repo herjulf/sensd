@@ -103,8 +103,10 @@ Indicator) and LQI (Link Quality Indicator)
 
 Example of tags used:
 
-*   UT= Unix time                    (Id)
-*   TZ= Time Zone                    (String)
+*   UT= Unix time                    (Id)      Provided by sensd
+*   TZ= Time Zone                    (String)  Provided by sensd
+*   GWGPS_LON=                       (float)   Provided by sensd
+*   GWGPS_LAT=                       (float)   Provided by sensd
 *   ID= Unique 64 bit ID             (S)
 *   E64= EUI-64 Unique 64 bit ID     (S)
 *   T= temp in Celcius               (F)
@@ -128,6 +130,12 @@ Meta-data and additional information, descriptions and comments can be stored in
 data file to keep everything in on context. Of course pre-cautions must taken 
 so this auxiliary data can conflict the data. In example to to restrict or escaped
 the '=' sign. It suggested that data is retrieved with seltag or a similar technique.
+
+
+Spacial delimiter 
+-----------------
+THe &: is used in the report message. The idea is to distinguish between data
+report and responses to commands. This not yet implemented. 
 
 
 Internet sensor data
@@ -162,6 +170,11 @@ cat /tmp/WSN1-GW1/281a98d20200004a/T
 19.44
 
 And very easy to link this tree into a web-server.
+
+gps support
+-----------
+Positioning support has been added via gps device connected to serial 
+or USB port. Tags added when enabled GWGPS_LON & GWGPS_LAT.
 
 
 Getting the source and building
