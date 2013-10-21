@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <termios.h>
 #include <time.h>
@@ -38,7 +39,7 @@
 #include <netinet/in.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.1 131015"
+#define VERSION "4.2 131021"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -49,6 +50,7 @@ char username[16];
 int pid;
 int retry = 6;
 
+float *gps_lon, *gps_lat;
 
 #define BUFSIZE 1024
 #define SERVER_PORT  1234
@@ -220,13 +222,11 @@ void print_report_header(int gps_fd, char *datebuf)
   }
 
   if(gps_fd > 0) {
-    float lon, lat;
-    int res = gps_read(gps_fd, &lon, &lat);
-    if ( res > 0 ) {
-	  sprintf(buf, "GWGPS_LON=%f ", lon);
+    if ( gps_fd ) {
+	  sprintf(buf, "GWGPS_LON=%f ", *gps_lon);
 	  strcat(datebuf, buf);
 
-	  sprintf(buf, "GWGPS_LAT=%f ", lat);
+	  sprintf(buf, "GWGPS_LAT=%f ", *gps_lat);
 	  strcat(datebuf, buf);
     }
   }
@@ -485,6 +485,20 @@ int main(int ac, char *av[])
 	  exit(-1);
 
 
+	if(gps_fd) {
+	  gps_lat = mmap(NULL, sizeof(gps_lat), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+	  if( gps_lat == (void *) -1) {
+	    perror("mmap");
+	    exit(-1);
+	  }
+	  gps_lon = mmap(NULL, sizeof(gps_lon), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+	  if( gps_lon == (void *) -1) {
+	    perror("mmap");
+	    exit(-1);
+	  }
+	}
+
+
 
 	/* Term ok deal w. text to send */
 	
@@ -501,7 +515,28 @@ int main(int ac, char *av[])
 	  if (i > 0) 
 	    _exit(0); /* parent exits */
 
-	  /* child */
+	  /* gps child */
+
+	  if( fork() == 0)  {
+	    int j;
+	    setsid(); /* obtain a new process group */
+	    for (j = getdtablesize(); j >= 0; --j) {
+	      if(j == gps_fd) continue;
+	    }
+	    j = open("/dev/null",O_RDWR); dup(i); dup(i); /* handle standard I/O */
+	    umask(027); /* set newly created file permissions */
+	    chdir("/"); /* change running directory */
+
+	    while(1) {
+	      j = gps_read(gps_fd, gps_lon, gps_lat);
+	      if(j == -1) {
+		*gps_lon = *gps_lat = -1;
+	      }
+	      sleep(5);
+	    }
+	  }
+
+	  /* poll child */
 	  
 	  setsid(); /* obtain a new process group */
 	  for (i = getdtablesize(); i >= 0; --i) {
@@ -756,13 +791,18 @@ int main(int ac, char *av[])
 	    }
 	}
 
+	if(gps_fd) {
+	  munmap(gps_lon, sizeof(gps_lon));
+	  munmap(gps_lat, sizeof(gps_lat));
+	}
+
 	if (tcsetattr(usb_fd, TCSANOW, &tp_usb_old) < 0) {
 	  perror("Couldn't restore term attributes");
 	  exit(-1);
 	}
 
 	if(gpsdev) {
-	  if (tcsetattr(gps_fd, TCSANOW, &tp_usb_old) < 0) {
+	  if (tcsetattr(gps_fd, TCSANOW, &tp_gps_old) < 0) {
 	    perror("Couldn't restore term attributes");
 	    exit(-1);
 	  }
@@ -770,18 +810,6 @@ int main(int ac, char *av[])
 	
 	lockfile_remove();
 	exit(0);
- error:
-	if(gpsdev) {
-	  if (tcsetattr(gps_fd, TCSANOW, &tp_usb_old) < 0) {
-	    perror("Couldn't restore term attributes");
-	    exit(-1);
-	  }
-	}
-
-	if (tcsetattr(usb_fd, TCSANOW, &tp_gps_old) < 0) {
-	  perror("Couldn't restore term attributes");
-	}
-	exit(-1);
 }
 
 
@@ -820,7 +848,7 @@ int gps_read(int fd, float *lon, float *lat)
       pfd.events = POLLIN;
       ok = poll( &pfd, 1, -1 );
       
-      if ( ok < 0 ) 
+    if ( ok < 0 ) 
 	continue;
       
       n = read(fd, &b, 1);
@@ -841,14 +869,11 @@ int gps_read(int fd, float *lon, float *lat)
       res = sscanf(buf, 
 		   "$GPRMC,%2d%2d%2d.%3c,%1c,%f,%1c,%f,%1c,%f,%f,%2d%2d%2d",
 		   &hour, &min, &sec, foo, &valid, lat, c,  lon, c, &speed, &course, &day, &mon, &year);
-      
+
       if(res == 14 && valid == 'A') {
-	
-	if( 1 ) {
-	  *lat /= 100;
-	  *lon /= 100;
-	  done = 1;
-	}
+	*lat /= 100;
+	*lon /= 100;
+	done = 1;
       }
     }
   }
