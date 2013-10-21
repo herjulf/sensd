@@ -132,7 +132,7 @@ so this auxiliary data can conflict the data. In example to to restrict or escap
 the '=' sign. It suggested that data is retrieved with seltag or a similar technique.
 
 
-Spacial delimiter 
+Special delimiter 
 -----------------
 THe &: is used in the report message. The idea is to distinguish between data
 report and responses to commands. This not yet implemented. 
@@ -171,10 +171,11 @@ cat /tmp/WSN1-GW1/281a98d20200004a/T
 
 And very easy to link this tree into a web-server.
 
-gps support
+GPS support
 -----------
 Positioning support has been added via gps device connected to serial 
 or USB port. Tags added when enabled GWGPS_LON & GWGPS_LAT.
+GPS code from. https://github.com/herjulf/gps_simple
 
 
 Getting the source and building
