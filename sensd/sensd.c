@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include "devtag-allinone.h"
 
@@ -819,12 +820,6 @@ int gps_read(int fd, float *lon, float *lat)
 
   int bp;
   int debug = 0;
-
-  struct {
-    int   fd;         /* file descriptor */
-    short events;     /* requested events */
-    short revents;    /* returned events */
-  } pollfd;
 
   float course, speed;
   char foo[6], buf[BUFLEN], c[1];
