@@ -40,7 +40,7 @@
 #include <netinet/in.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.2 131021"
+#define VERSION "4.3 131031"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -64,7 +64,7 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] DEV\n");
+  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] [-LONY.yy] [-LATY.xx] DEV\n");
   printf(" -report Enable net reports\n");
   printf(" -cmd  Enable net commands\n");
   printf(" -pport TCP server port. Default %d\n", SERVER_PORT);
@@ -74,6 +74,7 @@ void usage(void)
   printf(" -ggpsdev Device for gps\n");
   printf("Example 1: sensd  /dev/ttyUSB0\n");
   printf("Example 2: sensd -report -f/dev/null -g/dev/ttyUSB1 /dev/ttyUSB0\n");
+  printf("Example 3: sensd -report -f/dev/null -LON12.10 -LAT12.10 x /dev/ttyUSB0\n");
   exit(-1);
 }
 
@@ -84,6 +85,7 @@ int gps_read(int fd, float *lon, float *lat);
 /* Options*/
 int cmd, date, utime, utc, background;
 long baud;
+double lon = -1, lat = -1;
 
 /*
  * Find out name to use for lockfile when locking tty.
@@ -223,10 +225,20 @@ void print_report_header(char *gpsdev, char *datebuf)
   }
 
   if(gpsdev) {
-    sprintf(buf, "GWGPS_LON=%f ", *gps_lon);
+    sprintf(buf, "GWGPS_LON=%-3.5f ", *gps_lon);
     strcat(datebuf, buf);
 
-    sprintf(buf, "GWGPS_LAT=%f ", *gps_lat);
+    sprintf(buf, "GWGPS_LAT=%-3.5f ", *gps_lat);
+    strcat(datebuf, buf);
+  }
+
+  if(lon >= 0) {
+    sprintf(buf, "GW_LON=%-3.5f ", lon);
+    strcat(datebuf, buf);
+  }
+
+  if(lat >= 0) {
+    sprintf(buf, "GW_LAT=%-3.5f ", lat);
     strcat(datebuf, buf);
   }
 }
@@ -422,6 +434,12 @@ int main(int ac, char *av[])
 
 	    else if (strcmp(av[i], "-cmd") == 0) 
 	      cmd = 1;
+
+	    else if (strncmp(av[i], "-LON", 4) == 0)
+	      lon = strtod(av[i]+4, NULL);
+
+	    else if (strncmp(av[i], "-LAT", 4) == 0) 
+	      lat = strtod(av[i]+4, NULL);
 
 	    else
 	      usage();
