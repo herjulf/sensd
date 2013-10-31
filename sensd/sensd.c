@@ -683,9 +683,10 @@ int main(int ac, char *av[])
 	      if (fds[i].fd == usb_fd && fds[i].revents & POLLIN)   {
 		memset(io,0,BUFSIZE);
 		res = read(usb_fd, io, BUFSIZE);
-		if(res > BUFSIZE);
+		if(res > BUFSIZE){
+		}
 		else
-		  strcat(buf, "ERR read");
+		  strcat(buf, "ERR read\n");
 	        if(filedev){
 		  /* We have input in one line */
 		    if(io[0] == '&' && io[1] == ':' && (date || utime))
