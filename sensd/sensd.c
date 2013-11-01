@@ -85,7 +85,9 @@ int gps_read(int fd, float *lon, float *lat);
 /* Options*/
 int cmd, date, utime, utc, background;
 long baud;
-double lon = -1, lat = -1;
+
+#define GPS_MISS -999
+double lon = GPS_MISS, lat = GPS_MISS;
 
 /*
  * Find out name to use for lockfile when locking tty.
@@ -232,12 +234,12 @@ void print_report_header(char *gpsdev, char *datebuf)
     strcat(datebuf, buf);
   }
 
-  if(lon >= 0) {
+  if(lon > GPS_MISS) {
     sprintf(buf, "GW_LON=%-3.5f ", lon);
     strcat(datebuf, buf);
   }
 
-  if(lat >= 0) {
+  if(lat > GPS_MISS) {
     sprintf(buf, "GW_LAT=%-3.5f ", lat);
     strcat(datebuf, buf);
   }
@@ -840,8 +842,7 @@ int gps_read(int fd, float *lon, float *lat)
   int debug = 0;
 
   float course, speed;
-  char foo[6], buf[BUFLEN], c[1];
-  char valid;
+  char foo[6], buf[BUFLEN], valid, ns, ew;
   int try, res, maxtry = 10;
   unsigned int year, mon, day, hour, min, sec;
   int done = 0;
@@ -879,11 +880,19 @@ int gps_read(int fd, float *lon, float *lat)
       
       res = sscanf(buf, 
 		   "$GPRMC,%2d%2d%2d.%3c,%1c,%f,%1c,%f,%1c,%f,%f,%2d%2d%2d",
-		   &hour, &min, &sec, foo, &valid, lat, c,  lon, c, &speed, &course, &day, &mon, &year);
+		   &hour, &min, &sec, foo, &valid, lat, &ns, lon, &ew, &speed, &course, &day, &mon, &year);
 
       if(res == 14 && valid == 'A') {
+
 	*lat /= 100;
 	*lon /= 100;
+
+	if(ns == 'S')
+	  *lat = -*lat;
+	
+	if(ew == 'W')
+	  *lon = -*lon;
+
 	done = 1;
       }
     }
