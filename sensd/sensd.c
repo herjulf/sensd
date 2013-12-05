@@ -40,7 +40,7 @@
 #include <netinet/in.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.2 131021"
+#define VERSION "4.4 131101"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -64,7 +64,7 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] DEV\n");
+  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
   printf(" -report Enable net reports\n");
   printf(" -cmd  Enable net commands\n");
   printf(" -pport TCP server port. Default %d\n", SERVER_PORT);
@@ -75,6 +75,7 @@ void usage(void)
   printf(" -infile Read data from a file\n");
   printf("Example 1: sensd  /dev/ttyUSB0\n");
   printf("Example 2: sensd -report -f/dev/null -g/dev/ttyUSB1 /dev/ttyUSB0\n");
+  printf("Example 3: sensd -report -f/dev/null -LAT-2.10 -LON12.10 /dev/ttyUSB0\n");
   exit(-1);
 }
 
@@ -85,6 +86,9 @@ int gps_read(int fd, float *lon, float *lat);
 /* Options*/
 int cmd, date, utime, utc, background;
 long baud;
+
+#define GPS_MISS -999
+double lon = GPS_MISS, lat = GPS_MISS;
 
 /*
  * Find out name to use for lockfile when locking tty.
@@ -211,7 +215,7 @@ void print_report_header(char *gpsdev, char *datebuf)
     tp = localtime ( &raw_time );
 
   if(date) {
-	  sprintf(buf, "%04d-%02d-%02d %2d:%02d:%02d TZ=%s ",
+	  sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d TZ=%s ",
 		  tp->tm_year+1900, tp->tm_mon+1, 
 		  tp->tm_mday, tp->tm_hour, 
 		  tp->tm_min, tp->tm_sec, tp->tm_zone);
@@ -224,10 +228,20 @@ void print_report_header(char *gpsdev, char *datebuf)
   }
 
   if(gpsdev) {
-    sprintf(buf, "GWGPS_LON=%f ", *gps_lon);
+    sprintf(buf, "GWGPS_LAT=%-3.5f ", *gps_lat);
     strcat(datebuf, buf);
 
-    sprintf(buf, "GWGPS_LAT=%f ", *gps_lat);
+    sprintf(buf, "GWGPS_LON=%-3.5f ", *gps_lon);
+    strcat(datebuf, buf);
+  }
+
+  if(lat > GPS_MISS) {
+    sprintf(buf, "GW_LAT=%-3.5f ", lat);
+    strcat(datebuf, buf);
+  }
+
+  if(lon > GPS_MISS) {
+    sprintf(buf, "GW_LON=%-3.5f ", lon);
     strcat(datebuf, buf);
   }
 }
@@ -428,6 +442,12 @@ int main(int ac, char *av[])
 	    else if (strcmp(av[i], "-infile") == 0) 
 	      filedev = 1;
 
+	    else if (strncmp(av[i], "-LON", 4) == 0)
+	      lon = strtod(av[i]+4, NULL);
+
+	    else if (strncmp(av[i], "-LAT", 4) == 0) 
+	      lat = strtod(av[i]+4, NULL);
+
 	    else
 	      usage();
 
@@ -541,7 +561,7 @@ int main(int ac, char *av[])
 	    while(1) {
 	      j = gps_read(gps_fd, gps_lon, gps_lat);
 	      if(j == -1) {
-		*gps_lon = *gps_lat = -1;
+		*gps_lon = *gps_lat = GPS_MISS;
 	      }
 	      sleep(5);
 	    }
@@ -850,8 +870,7 @@ int gps_read(int fd, float *lon, float *lat)
   int debug = 0;
 
   float course, speed;
-  char foo[6], buf[BUFLEN], c[1];
-  char valid;
+  char foo[6], buf[BUFLEN], valid, ns, ew;
   int try, res, maxtry = 10;
   unsigned int year, mon, day, hour, min, sec;
   int done = 0;
@@ -889,11 +908,19 @@ int gps_read(int fd, float *lon, float *lat)
       
       res = sscanf(buf, 
 		   "$GPRMC,%2d%2d%2d.%3c,%1c,%f,%1c,%f,%1c,%f,%f,%2d%2d%2d",
-		   &hour, &min, &sec, foo, &valid, lat, c,  lon, c, &speed, &course, &day, &mon, &year);
+		   &hour, &min, &sec, foo, &valid, lat, &ns, lon, &ew, &speed, &course, &day, &mon, &year);
 
       if(res == 14 && valid == 'A') {
+
 	*lat /= 100;
 	*lon /= 100;
+
+	if(ns == 'S')
+	  *lat = -*lat;
+	
+	if(ew == 'W')
+	  *lon = -*lon;
+
 	done = 1;
       }
     }
