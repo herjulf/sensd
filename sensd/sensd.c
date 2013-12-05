@@ -72,6 +72,7 @@ void usage(void)
   printf(" -ffile data file. Default is /var/log/sensors.dat\n");
   printf(" -Rpath Path for reports. One dir per sensor. One file per value.\n");
   printf(" -ggpsdev Device for gps\n");
+  printf(" -infile Read data from a file\n");
   printf("Example 1: sensd  /dev/ttyUSB0\n");
   printf("Example 2: sensd -report -f/dev/null -g/dev/ttyUSB1 /dev/ttyUSB0\n");
   printf("Example 3: sensd -report -f/dev/null -LAT-2.10 -LON12.10 /dev/ttyUSB0\n");
@@ -353,6 +354,7 @@ int main(int ac, char *av[])
 	char *filename = NULL;
 	char *gpsdev = NULL;
 	char *reportpath = NULL;
+	unsigned short filedev = 0;
 	int res;
 	int i, len;
 	char *prog = basename (av[0]);
@@ -437,6 +439,9 @@ int main(int ac, char *av[])
 	    else if (strcmp(av[i], "-cmd") == 0) 
 	      cmd = 1;
 
+	    else if (strcmp(av[i], "-infile") == 0) 
+	      filedev = 1;
+
 	    else if (strncmp(av[i], "-LON", 4) == 0)
 	      lon = strtod(av[i]+4, NULL);
 
@@ -489,20 +494,27 @@ int main(int ac, char *av[])
 	    sleep(1);
 	}
 
-	if ((usb_fd = open(devtag_get(av[i]), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
-	  perror("bad terminal device, try another");
-	  exit(-1);
-	}
+	if(filedev) {
+		usb_fd = open(av[i],O_RDONLY);
+		if(file_fd < 0) {
+			fprintf(stderr, "Failed to open filedev '%s'\n", filename);
+			exit(2);
+		}
+	} else {
+		if ((usb_fd = open(devtag_get(av[i]), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
+		  perror("bad terminal device, try another");
+		  exit(-1);
+		}
 	
-	if (tcgetattr(usb_fd, &tp) < 0) {
-		perror("Couldn't get term attributes");
-		exit(-1);
+		if (tcgetattr(usb_fd, &tp) < 0) {
+			perror("Couldn't get term attributes");
+			exit(-1);
+		}
+		tp_usb_old = tp;
+
+		if( set_term(usb_fd, baud, tp) != 1)
+		  exit(-1);
 	}
-	tp_usb_old = tp;
-
-	if( set_term(usb_fd, baud, tp) != 1)
-	  exit(-1);
-
 
 	if(gpsdev) {
 	  gps_lat = mmap(NULL, sizeof(gps_lat), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
@@ -689,22 +701,17 @@ int main(int ac, char *av[])
 	      */
 
 	      if (fds[i].fd == usb_fd && fds[i].revents & POLLIN)   {
-
+		memset(io,0,BUFSIZE);
 		res = read(usb_fd, io, BUFSIZE);
-		if(res > BUFSIZE);
+		if(res > BUFSIZE){
+		}
 		else
-		  strcat(buf, "ERR read");
-		
-		for(ii=0; ii < res; ii++, j++)  {
-		  if(io[ii] == END_OF_FILE) {
-		    outbuf[0] = 0;
-		    if(buf[0] == '&' && buf[1] == ':' && (date || utime))
+		  strcat(buf, "ERR read\n");
+	        if(filedev){
+		  /* We have input in one line */
+		    if(io[0] == '&' && io[1] == ':' && (date || utime))
 		      print_report_header(gpsdev, outbuf);
-		    else 
-		      strcat(outbuf, "ERR missing signature");
-
-		    buf[j] = 0;
-		    strcat(outbuf, buf);
+		    strcat(outbuf, io);
 		    write(file_fd, outbuf, strlen(outbuf));
 		    if(reportpath) 
 		      do_report(buf, reportpath);
@@ -712,11 +719,31 @@ int main(int ac, char *av[])
 		    if(report)
 		      send_2_listners = 1;
 
-		    j = -1;
+		}else{
+
+		  for(ii=0; ii < res; ii++, j++)  {
+		    if(io[ii] == END_OF_FILE) {
+		      outbuf[0] = 0;
+		      if(buf[0] == '&' && buf[1] == ':' && (date || utime))
+		        print_report_header(gpsdev, outbuf);
+		      else{ 
+		        strcat(outbuf, "ERR missing signature");
+		      }
+		      buf[j] = 0;
+		      strcat(outbuf, buf);
+		      write(file_fd, outbuf, strlen(outbuf));
+		      if(reportpath) 
+		        do_report(buf, reportpath);
+
+		      if(report)
+		        send_2_listners = 1;
+
+		      j = -1;
 		  
-		  }
-		  else  {
-		    buf[j] = io[ii];
+		    }
+		    else  {
+		      buf[j] = io[ii];
+		    }
 		  }
 		}
 		fds[i].revents &= ~POLLIN;
@@ -814,10 +841,11 @@ int main(int ac, char *av[])
 	  munmap(gps_lon, sizeof(gps_lon));
 	  munmap(gps_lat, sizeof(gps_lat));
 	}
-
-	if (tcsetattr(usb_fd, TCSANOW, &tp_usb_old) < 0) {
-	  perror("Couldn't restore term attributes");
-	  exit(-1);
+	if(!filedev){
+		if (tcsetattr(usb_fd, TCSANOW, &tp_usb_old) < 0) {
+		  perror("Couldn't restore term attributes");
+		  exit(-1);
+		}
 	}
 
 	if(gpsdev) {
