@@ -82,10 +82,10 @@ Running the seltag to filter out tag ID and T
 
  tail /var/log/sensors.dat | grep 28e13cce020000c6 | seltag 2 ID=%s T=%s
 
- 2013-12-30 23:56:24 28e13cce020000c6 18.94 
 
  2013-12-30 23:58:24 28e13cce020000c6 19.00 
 
+Note the specal syntax "=%s".
 
 ### doc
 Documentation and sample files
