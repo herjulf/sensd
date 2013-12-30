@@ -74,6 +74,7 @@ seltag 2 ID=%s T=%s V_MCU=%s < infile > outfile
 Example:
 
 Raw report
+
 tail /var/log/sensors.dat | grep 28e13cce020000c6                      
  2013-12-30 23:58:24 TZ=CET UT=1388444304 GWGPS_LON=17.36869 GWGPS_LAT=59.51052 &: ID=28e13cce020000c6 PS=1 T=19.00  V_MCU=3.60 UP=18BEC40 V_IN=0.29  V_A1=0.00  V_A2=0.00  [ADDR=225.198 SEQ=248 RSSI=16 LQI=255 DRP=1.00]
 
