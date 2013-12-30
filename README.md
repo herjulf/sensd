@@ -61,10 +61,7 @@ A set of Java-scripts can plot, print and visualize sensor data from sensd
 direct in your web-browser.
 
 ### seltag 
-seltag filter and formats "tagged data" on stdin by column a format on stdout. 
-A typical seltag input is the output from sensd (sensors.dat). The resulting  
-data plotting is normally used for plotting and further analysis. 
-I most cases seltag is used together unix commands like grep, tail etc.
+seltag filters and formats "tagged data" on stdin and outputs on stdout by in column format. A typical seltag input comes from sensd (sensors.dat). The resulting data plotting is normally used for plotting and further analysis. I most cases seltag is used together unix commands like grep, tail etc.
 
 Syntax:
 seltag 2 ID=%s T=%s V_MCU=%s < infile > outfile
