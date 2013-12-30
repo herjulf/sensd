@@ -61,9 +61,25 @@ A set of Java-scripts can plot, print and visualize sensor data from sensd
 direct in your web-browser.
 
 ### seltag 
-A simple program that can extract data (sensors.dat) via tags and format output
-for plotting and further analysis. Normally you extract the desired
-ID and the wanted tag identifiers.
+seltag filter and formats "tagged data" on stdin by column a format on stdout. 
+A typical seltag input is the output from sensd (sensors.dat). The resulting  
+data plotting is normally used for plotting and further analysis. 
+I most cases seltag is used together unix commands like grep, tail etc.
+
+Syntax:
+seltag 2 ID=%s T=%s V_MCU=%s < infile > outfile
+
+Example:
+
+# Raw report
+tail /var/log/sensors.dat | grep 28e13cce020000c6                      
+2013-12-30 23:58:24 TZ=CET UT=1388444304 GWGPS_LON=17.36869 GWGPS_LAT=59.51052 &: ID=28e13cce020000c6 PS=1 T=19.00  V_MCU=3.60 UP=18BEC40 V_IN=0.29  V_A1=0.00  V_A2=0.00  [ADDR=225.198 SEQ=248 RSSI=16 LQI=255 DRP=1.00]
+
+# Running the seltag to filter out tag ID and T 
+tail /var/log/sensors.dat | grep 28e13cce020000c6 | seltag 2 ID=%s T=%s
+2013-12-30 23:56:24 28e13cce020000c6 18.94 
+2013-12-30 23:58:24 28e13cce020000c6 19.00 
+
 
 ### doc
 Documentation and sample files
