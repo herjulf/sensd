@@ -130,36 +130,37 @@ B = Boolean
 
 Example of tags used:
 
-*   UT= Unix time                    (Id)      Provided by sensd
-*   TZ= Time Zone                    (String)  Provided by sensd
-*   GWGPS_LON=                       (float)   Provided by sensd
-*   GWGPS_LAT=                       (float)   Provided by sensd
-*   ID= Unique 64 bit ID             (S)
-*   E64= EUI-64 Unique 64 bit ID     (S)
-*   T= temp in Celcius               (F)
-*   PS= Power Save Indicator         (B)
-*   P= Pressure                      (F)
-*   V_MCU= Microcontorller Voltage   (F)
-*   UP= Uptime                       (Ih)
-*   RH= Relative Humidity in %       (F)
-*   V_IN= Voltage Input              (F) 
-*   V_A1= Voltage Analog 1 (A1)      (F) 
-*   V_A2= Voltage Analog 2 (A2)      (F) 
-*   V_A3= Voltage Analog 1 (A3)      (F) 
-*   V_A4= Voltage Analog 1 (A4)      (F) 
-*   V_AD1= Voltage ADC 1 (AD1)       (F) 
-*   V_AD2= Voltage ADC 2 (AD2)       (F) 
-*   V_AD3= Voltage ADC 3 (AD3)       (F) 
-*   V_AD4= Voltage ADC 4 (AD4)       (F) 
-*   P0= Number of pulses (Input 0)   (Ih)
-*   P0_T= Pulses per Sec  (Input 0)  (F)
-*   P1= Number of pulses (Input 1)   (Ih)
-*   P1_T= Pulses per Sec  (Input 1)  (F)
-*   RSSI= Reeiver Signal Strengh Indicator (Id)
-*   LQI= Link Quality Indicator      (Id)
-*   SEQ= Sequental Number (packet)   (Id) 
-*   DRP= Drop Probability (Contiki)  (F) 
-*   ADDR=                            (S)
+*   UT= Unix time                           (Id)      Provided by sensd
+*   TZ= Time Zone                           (String)  Provided by sensd
+*   GWGPS_LON=                              (float)   Provided by sensd
+*   GWGPS_LAT=                              (float)   Provided by sensd
+*   TXT= Node text field, site, name etc    (s)   
+*   ID= Unique 64 bit ID                    (S)
+*   E64= EUI-64 Unique 64 bit ID            (S)
+*   T= temp in Celcius                      (F)
+*   PS= Power Save Indicator                (B)
+*   P= Pressure                             (F)
+*   V_MCU= Microcontorller Voltage          (F)
+*   UP= Uptime                              (Ih)
+*   RH= Relative Humidity in %              (F)
+*   V_IN= Voltage Input                     (F) 
+*   V_A1= Voltage Analog 1 (A1)             (F) 
+*   V_A2= Voltage Analog 2 (A2)             (F) 
+*   V_A3= Voltage Analog 1 (A3)             (F) 
+*   V_A4= Voltage Analog 1 (A4)             (F) 
+*   V_AD1= Voltage ADC 1 (AD1)              (F) 
+*   V_AD2= Voltage ADC 2 (AD2)              (F) 
+*   V_AD3= Voltage ADC 3 (AD3)              (F) 
+*   V_AD4= Voltage ADC 4 (AD4)              (F) 
+*   P0= Number of pulses (Input 0)          (Ih)
+*   P0_T= Pulses per Sec  (Input 0)         (F)
+*   P1= Number of pulses (Input 1)          (Ih)
+*   P1_T= Pulses per Sec  (Input 1)         (F)
+*   RSSI= Reeiver Signal Strengh Indicator  (Id)
+*   LQI= Link Quality Indicator             (Id)
+*   SEQ= Sequental Number (packet)          (Id) 
+*   DRP= Drop Probability (Contiki)         (F) 
+*   ADDR=                                   (S)
 
 
 Datafile metadata 
