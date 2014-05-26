@@ -38,9 +38,10 @@
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+ #include <netdb.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.4 131101"
+#define VERSION "4.4 140526"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -55,6 +56,7 @@ float *gps_lon, *gps_lat;
 
 #define BUFSIZE 1024
 #define SERVER_PORT  1234
+#define PROXY_PORT  4321
 
 #define TRUE             1
 #define FALSE            0
@@ -64,18 +66,22 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
-  printf(" -report Enable net reports\n");
-  printf(" -cmd  Enable net commands\n");
-  printf(" -pport TCP server port. Default %d\n", SERVER_PORT);
-  printf(" -utc time in UTC\n");
-  printf(" -ffile data file. Default is /var/log/sensors.dat\n");
-  printf(" -Rpath Path for reports. One dir per sensor. One file per value.\n");
-  printf(" -ggpsdev Device for gps\n");
-  printf(" -infile Read data from a file\n");
+  printf("Usage: sensd [-proxy_addr] [-proxy_port] [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
+  printf(" -report      Enable net reports\n");
+  printf(" -proxy       Send to proxy host. Now only localhost\n");
+  printf(" -proxy_port  Use proxyport. Default %d\n", PROXY_PORT);
+  printf(" -cmd         Enable net commands\n");
+  printf(" -pport       TCP server port. Default %d\n", SERVER_PORT);
+  printf(" -utc         Time in UTC\n");
+  printf(" -ffile       Log datafile. Default is /var/log/sensors.dat\n");
+  printf(" -Rpath       Path for reports. One dir per sensor. One file per value.\n");
+  printf(" -ggpsdev     Device for gps\n");
+  printf(" -infile      Read data from a file\n");
   printf("Example 1: sensd  /dev/ttyUSB0\n");
   printf("Example 2: sensd -report -f/dev/null -g/dev/ttyUSB1 /dev/ttyUSB0\n");
   printf("Example 3: sensd -report -f/dev/null -LAT-2.10 -LON12.10 /dev/ttyUSB0\n");
+  printf("Example 4: sensd -proxy -report -f/dev/null /dev/ttyUSB0\n");
+
   exit(-1);
 }
 
@@ -343,12 +349,45 @@ TABDLY BSDLY VTDLY FFDLY
 	return 1;
 }
 
+int connect_proxy(char *host, int port)
+{
+    struct sockaddr_in addr;
+    struct hostent *he;
+    int len, s, x, on = 1;
+
+    he = gethostbyname(host);
+    if (!he)
+	return (-2);
+
+    len = sizeof(addr);
+    s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0)
+	return s;
+
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, 4);
+
+    len = sizeof(addr);
+    memset(&addr, '\0', len);
+    addr.sin_family = AF_INET;
+    memcpy(&addr.sin_addr, he->h_addr, he->h_length);
+    addr.sin_port = htons(port);
+    x = connect(s, (struct sockaddr *) &addr, len);
+    if (x < 0) {
+	close(s);
+	return x;
+    }
+    //set_nonblock(s);
+    return s;
+}
+
 int main(int ac, char *av[]) 
 {
   struct termios tp, tp_usb_old, tp_gps_old;
 	int usb_fd;
 	int file_fd;
 	int gps_fd;
+	int proxy_fd = -1;
+	int send_2_proxy = 0;
 	char io[BUFSIZE];
 	char buf[BUFSIZE];
 	char *filename = NULL;
@@ -369,7 +408,9 @@ int main(int ac, char *av[])
 	int    nfds = 2, current_size = 0, j;
 	int    send_2_listners;
 	unsigned short port = SERVER_PORT;
+	int proxy_port = PROXY_PORT;
 	unsigned short cmd = 0, report = 0;
+	int debug = 0;
 
 
 	if (strcmp(prog, "sensd") == 0) {
@@ -429,6 +470,18 @@ int main(int ac, char *av[])
 	      if(!*reportpath) reportpath = "/var/lib/sensd";
 	    }
 
+	    else if (strncmp(av[i], "-debug", 6) == 0) {
+	      debug = 1;
+	    }
+	    
+	    else if (strncmp(av[i], "-proxy_port", 11) == 0) {
+	      proxy_port = atoi(av[i]+3);
+	    }
+
+	    else if (strcmp(av[i], "-proxy") == 0) {
+	      send_2_proxy = 1;
+	    }
+
 	    else if (strncmp(av[i], "-p", 2) == 0) {
 	      port = atoi(av[i]+2);
 	    }
@@ -452,6 +505,9 @@ int main(int ac, char *av[])
 	      usage();
 
 	  }
+
+	if(debug) 
+	  printf("pp=%d\n", proxy_port);
 
 	if(reportpath) {
 		struct stat statb;
@@ -574,6 +630,7 @@ int main(int ac, char *av[])
 		  if(i == gps_fd) continue;
 		  if(i == usb_fd) continue;
 		  if(i == file_fd) continue;
+		  if(debug && i == 1) continue;
 	    close(i); /* close all descriptors */
 	  }
 
@@ -608,7 +665,6 @@ int main(int ac, char *av[])
 	}
 
 	/* Allow socket descriptor to be reuseable */
-
 	rc = setsockopt(listen_sd, SOL_SOCKET,  SO_REUSEADDR,
 			(char *)&on, sizeof(on));
 	if (rc < 0)   {
@@ -655,24 +711,27 @@ int main(int ac, char *av[])
 
 	/* Add initial listening sockets  */
 
-	fds[0].fd = listen_sd;
-	fds[0].events = POLLIN;
-
-	fds[1].fd = usb_fd;
-	fds[1].events = POLLIN;
-
-	nfds = 2;
-	timeout = (10 * 1000);
+	nfds = 0;
+	fds[nfds].fd = listen_sd;
+	fds[nfds].events = POLLIN;
+	nfds++;
+	fds[nfds].fd = usb_fd;
+	fds[nfds].events = POLLIN;
+	nfds++;
 
 	j = 0;
 
 	while (1)  {
 	  int i, ii;
-	    char outbuf[512];
+	  static int proxy_start = 0;
+	  char outbuf[512];
 
-	    timeout = (10 * 1000);
-	    
-	    rc = poll(fds, nfds, timeout);
+	  if (proxy_start++ == 0)
+	    timeout = (10);
+	  else 
+	    timeout = 5000;
+
+	  rc = poll(fds, nfds, timeout);
 	    send_2_listners = 0;
 	    
 	    if (rc < 0)  {
@@ -681,10 +740,22 @@ int main(int ac, char *av[])
 	    }
 	    
 	    if (rc == 0)  {
-	      /* Timeout placeholder */
+	      /* Try (re)-connect to proxy */
+	      if(send_2_proxy && (proxy_fd == -1)) {
+
+		if(debug)
+		  printf("trying proxy\n");
+
+		proxy_fd = connect_proxy("localhost", proxy_port);
+		if (proxy_fd >= 0) {
+		  fds[nfds].fd = proxy_fd;
+		  fds[nfds].events = POLLIN;
+		  nfds++;
+		}
+	      }
 	      continue;
 	    }
-	    
+
 	    current_size = nfds;
 	    for (i = 0; i < current_size; i++)   {
 	      
@@ -790,6 +861,13 @@ int main(int ac, char *av[])
 		
 		if (close_conn)  {
 		  close(fds[i].fd);
+
+		  if(fds[i].fd == proxy_fd) {
+		   proxy_fd = -1;
+		   if(debug)
+		     printf("proxy closed\n");
+		  }
+
 		  fds[i].fd = -1;
 		  compress_array = TRUE;
 		}
@@ -813,19 +891,17 @@ int main(int ac, char *av[])
 		}
 	      }
 	    }
-	
+
 	    if(send_2_listners) {
-	      static int cnt;
-	      cnt++;
 	      current_size = nfds;
 	      for (i = 0; i < current_size; i++)   {
-		
+
 		if (fds[i].fd == usb_fd)
 		  continue;
 		
 		if (fds[i].fd == listen_sd)
 		  continue;
-		
+
 		len = strlen(outbuf);
 		rc = send(fds[i].fd, outbuf, len, 0);
 		
