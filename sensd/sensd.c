@@ -41,7 +41,7 @@
  #include <netdb.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.5 140529"
+#define VERSION "4.6 140529"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -77,12 +77,13 @@ void usage(void)
   printf(" -cmd         Enable net commands\n");
   printf(" -R path      Path for reports. One dir per sensor. One file per value.\n");
   printf(" -g gpsdev    Device for gps\n");
-  printf(" -infile      Read data from a file\n");
+  printf(" -infile      Read data from a file (named pipe)\n");
   printf(" -debug       Debug on stdout\n");
   printf("Example 1: sensd  /dev/ttyUSB0\n");
   printf("Example 2: sensd -report -f /dev/null -g /dev/ttyUSB1 /dev/ttyUSB0\n");
   printf("Example 3: sensd -report -f /dev/null -LAT -2.10 -LON 12.10 /dev/ttyUSB0\n");
-  printf("Example 4: sensd -proxy -report -f /dev/null /dev/ttyUSB0\n");
+  printf("Example 4: sensd -proxy addr -report -f /dev/null /dev/ttyUSB0\n");
+  printf("Example 5: sensd -report -f /dev/null -infile mkfifo_file\n");
 
   exit(-1);
 }
