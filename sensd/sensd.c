@@ -41,7 +41,7 @@
  #include <netdb.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.4 140526"
+#define VERSION "4.5 140529"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -66,21 +66,23 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-proxy_addr] [-proxy_port] [-pport] [-cmd] [-report] [-utc] [-ffile] [-Rpath] [-ggpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
+  printf("Usage: sensd [-proxy addr] [-proxy_port port] [-p port] [-cmd] [-report] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
+
+  printf(" -f file      Log datafile. Default is /var/log/sensors.dat\n");
   printf(" -report      Enable net reports\n");
-  printf(" -proxy       Send to proxy host. Now only localhost\n");
-  printf(" -proxy_port  Use proxyport. Default %d\n", PROXY_PORT);
-  printf(" -cmd         Enable net commands\n");
-  printf(" -pport       TCP server port. Default %d\n", SERVER_PORT);
+  printf(" -p port      TCP server port. Default %d\n", SERVER_PORT);
+  printf(" -proxy addr  Send to proxy host.\n");
+  printf(" -proxy_port port  Use proxyport. Default %d\n", PROXY_PORT);
   printf(" -utc         Time in UTC\n");
-  printf(" -ffile       Log datafile. Default is /var/log/sensors.dat\n");
-  printf(" -Rpath       Path for reports. One dir per sensor. One file per value.\n");
-  printf(" -ggpsdev     Device for gps\n");
+  printf(" -cmd         Enable net commands\n");
+  printf(" -R path      Path for reports. One dir per sensor. One file per value.\n");
+  printf(" -g gpsdev    Device for gps\n");
   printf(" -infile      Read data from a file\n");
+  printf(" -debug       Debug on stdout\n");
   printf("Example 1: sensd  /dev/ttyUSB0\n");
-  printf("Example 2: sensd -report -f/dev/null -g/dev/ttyUSB1 /dev/ttyUSB0\n");
-  printf("Example 3: sensd -report -f/dev/null -LAT-2.10 -LON12.10 /dev/ttyUSB0\n");
-  printf("Example 4: sensd -proxy -report -f/dev/null /dev/ttyUSB0\n");
+  printf("Example 2: sensd -report -f /dev/null -g /dev/ttyUSB1 /dev/ttyUSB0\n");
+  printf("Example 3: sensd -report -f /dev/null -LAT -2.10 -LON 12.10 /dev/ttyUSB0\n");
+  printf("Example 4: sensd -proxy -report -f /dev/null /dev/ttyUSB0\n");
 
   exit(-1);
 }
@@ -402,6 +404,7 @@ int main(int ac, char *av[])
 	int    compress_array = FALSE;
 	int    close_conn;
 	char   buffer[BUFSIZE];
+	char   *remote_host;
 	struct sockaddr_in   addr;
 	int    timeout;
 	struct pollfd fds[200];
@@ -460,13 +463,13 @@ int main(int ac, char *av[])
 	      background = 1;
 
 	    else if (strncmp(av[i], "-f", 2) == 0) 
-	      filename = av[i]+2;
+	      filename = av[++i];
 
 	    else if (strncmp(av[i], "-g", 2) == 0) 
-	      gpsdev = av[i]+2;
+	      gpsdev = av[++i];
 
 	    else if (strncmp(av[i], "-R", 2) == 0) {
-	      reportpath = av[i]+2;
+	      reportpath = av[++i];
 	      if(!*reportpath) reportpath = "/var/lib/sensd";
 	    }
 
@@ -475,15 +478,16 @@ int main(int ac, char *av[])
 	    }
 	    
 	    else if (strncmp(av[i], "-proxy_port", 11) == 0) {
-	      proxy_port = atoi(av[i]+3);
+	      proxy_port = atoi(av[++i]);
 	    }
 
 	    else if (strcmp(av[i], "-proxy") == 0) {
+	      remote_host = av[++i];
 	      send_2_proxy = 1;
 	    }
 
 	    else if (strncmp(av[i], "-p", 2) == 0) {
-	      port = atoi(av[i]+2);
+	      port = atoi(av[++i]);
 	    }
 
 	    else if (strcmp(av[i], "-report") == 0) 
@@ -496,10 +500,10 @@ int main(int ac, char *av[])
 	      filedev = 1;
 
 	    else if (strncmp(av[i], "-LON", 4) == 0)
-	      lon = strtod(av[i]+4, NULL);
+	      lon = strtod(av[++i], NULL);
 
 	    else if (strncmp(av[i], "-LAT", 4) == 0) 
-	      lat = strtod(av[i]+4, NULL);
+	      lat = strtod(av[++i], NULL);
 
 	    else
 	      usage();
@@ -508,6 +512,7 @@ int main(int ac, char *av[])
 
 	if(debug) 
 	  printf("pp=%d\n", proxy_port);
+	  printf("remote_host=%s\n", remote_host);
 
 	if(reportpath) {
 		struct stat statb;
@@ -744,9 +749,9 @@ int main(int ac, char *av[])
 	      if(send_2_proxy && (proxy_fd == -1)) {
 
 		if(debug)
-		  printf("trying proxy\n");
+		  printf("Connecting %s on port %d\n", remote_host, proxy_port);
 
-		proxy_fd = connect_proxy("localhost", proxy_port);
+		proxy_fd = connect_proxy(remote_host, proxy_port);
 		if (proxy_fd >= 0) {
 		  fds[nfds].fd = proxy_fd;
 		  fds[nfds].events = POLLIN;
@@ -865,9 +870,8 @@ int main(int ac, char *av[])
 		  if(fds[i].fd == proxy_fd) {
 		   proxy_fd = -1;
 		   if(debug)
-		     printf("proxy closed\n");
+		     printf("Closed connection to %s on port %d \n", remote_host, proxy_port);
 		  }
-
 		  fds[i].fd = -1;
 		  compress_array = TRUE;
 		}
