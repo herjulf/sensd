@@ -23,9 +23,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 #include <unistd.h>
 #include <termios.h>
 #include <time.h>
@@ -34,14 +31,18 @@
 #include <libgen.h>
 #include <errno.h>
 #include <signal.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
- #include <netdb.h>
+#include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.6 140529"
+#define VERSION "4.7 140619"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -56,7 +57,7 @@ float *gps_lon, *gps_lat;
 
 #define BUFSIZE 1024
 #define SERVER_PORT  1234
-#define PROXY_PORT  4321
+#define SEND_PORT  SERVER_PORT  
 
 #define TRUE             1
 #define FALSE            0
@@ -65,25 +66,26 @@ float *gps_lon, *gps_lat;
 void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
-  printf("\nsensd daemon reads sensors data from serial/USB and writes to file\n");
-  printf("Usage: sensd [-proxy addr] [-proxy_port port] [-p port] [-cmd] [-report] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
+  printf("\nsensd: A WSN gateway, proxy and hub\n");
+  printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
 
-  printf(" -f file      Log datafile. Default is /var/log/sensors.dat\n");
-  printf(" -report      Enable net reports\n");
+  printf(" -f file      Local logfile. Default is /var/log/sensors.dat\n");
+  printf(" -report      Enable TCP reports\n");
   printf(" -p port      TCP server port. Default %d\n", SERVER_PORT);
-  printf(" -proxy addr  Send to proxy host.\n");
-  printf(" -proxy_port port  Use proxyport. Default %d\n", PROXY_PORT);
+  printf(" -send addr   Send data to a proxy\n");
+  printf(" -receive     Receive. Be a proxy\n");
+  printf(" -send_port port  Set proxyport. Default %d\n", SEND_PORT);
   printf(" -utc         Time in UTC\n");
-  printf(" -cmd         Enable net commands\n");
-  printf(" -R path      Path for reports. One dir per sensor. One file per value.\n");
+  printf(" -R path      Path for reports. One dir per sensor. One file per value\n");
   printf(" -g gpsdev    Device for gps\n");
   printf(" -infile      Read data from a file (named pipe)\n");
   printf(" -debug       Debug on stdout\n");
   printf("Example 1: sensd  /dev/ttyUSB0\n");
   printf("Example 2: sensd -report -f /dev/null -g /dev/ttyUSB1 /dev/ttyUSB0\n");
   printf("Example 3: sensd -report -f /dev/null -LAT -2.10 -LON 12.10 /dev/ttyUSB0\n");
-  printf("Example 4: sensd -proxy addr -report -f /dev/null /dev/ttyUSB0\n");
-  printf("Example 5: sensd -report -f /dev/null -infile mkfifo_file\n");
+  printf("Example 4: sensd -report -send addr -f /dev/null /dev/ttyUSB0\n");
+  printf("Example 5: sensd -report -receive   -f /dev/null /dev/ttyUSB0\n");
+  printf("Example 6: sensd -report -f /dev/null -infile mkfifo_file\n");
 
   exit(-1);
 }
@@ -352,7 +354,7 @@ TABDLY BSDLY VTDLY FFDLY
 	return 1;
 }
 
-int connect_proxy(char *host, int port)
+int connect_remote(char *host, int port)
 {
     struct sockaddr_in addr;
     struct hostent *he;
@@ -383,6 +385,61 @@ int connect_proxy(char *host, int port)
     return s;
 }
 
+int lissen(struct sockaddr_in addr, int port)
+{
+	int s = socket(AF_INET, SOCK_STREAM, 0);
+	int rc, on = 1;
+
+	if (s < 0)  { 
+		perror("socket() failed");
+		exit(-1);
+	}
+
+	/* Allow socket descriptor to be reuseable */
+	rc = setsockopt(s, SOL_SOCKET,  SO_REUSEADDR,
+			(char *)&on, sizeof(on));
+	if (rc < 0)   {
+		perror("setsockopt() failed");
+		close(s);
+		exit(-1);
+	}
+	  
+	/* Set socket to be nonblocking. All of the sockets for    
+	   the incoming connections will also be nonblocking since  
+	   they will inherit that state from the listening socket.   */
+	  
+	rc = ioctl(s, FIONBIO, (char *)&on);
+	if (rc < 0)  {
+		perror("ioctl() failed");
+		close(s);
+		exit(-1);
+	}
+	  
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family      = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port        = htons(port);
+	  
+	rc = bind(s, (struct sockaddr *)&addr, sizeof(addr));
+	  
+	if (rc < 0)   {
+		perror("bind() failed");
+		close(s);
+		exit(-1);
+	}
+
+	/* Set the listen back log  */
+
+	rc = listen(s, 32);
+	  
+	if (rc < 0)   {
+		perror("listen() failed");
+		close(s);
+		exit(-1);
+	}
+	return s;
+}
+
 int main(int ac, char *av[]) 
 {
   struct termios tp, tp_usb_old, tp_gps_old;
@@ -391,6 +448,7 @@ int main(int ac, char *av[])
 	int gps_fd;
 	int proxy_fd = -1;
 	int send_2_proxy = 0;
+	int receive = 0;
 	char io[BUFSIZE];
 	char buf[BUFSIZE];
 	char *filename = NULL;
@@ -400,22 +458,23 @@ int main(int ac, char *av[])
 	int res;
 	int i, len;
 	char *prog = basename (av[0]);
-	int    rc, on = 1;
+	int    rc;
 	int    listen_sd = -1, new_sd = -1;
 	int    compress_array = FALSE;
 	int    close_conn;
 	char   buffer[BUFSIZE];
-	char   *remote_host;
+	char   *send_host;
 	struct sockaddr_in   addr;
 	int    timeout;
 	struct pollfd fds[200];
 	int    nfds = 2, current_size = 0, j;
 	int    send_2_listners;
 	unsigned short port = SERVER_PORT;
-	int proxy_port = PROXY_PORT;
-	unsigned short cmd = 0, report = 0;
+	int send_port = SEND_PORT;
+	unsigned short report = 0;
 	int debug = 0;
-
+	struct sockaddr saddr;
+	int saddr_len = sizeof(saddr);
 
 	if (strcmp(prog, "sensd") == 0) {
 	  baud = B38400;
@@ -478,12 +537,12 @@ int main(int ac, char *av[])
 	      debug = 1;
 	    }
 	    
-	    else if (strncmp(av[i], "-proxy_port", 11) == 0) {
-	      proxy_port = atoi(av[++i]);
+	    else if (strncmp(av[i], "-send_port", 9) == 0) {
+	      send_port = atoi(av[++i]);
 	    }
 
-	    else if (strcmp(av[i], "-proxy") == 0) {
-	      remote_host = av[++i];
+	    else if (strcmp(av[i], "-send") == 0) {
+	      send_host = av[++i];
 	      send_2_proxy = 1;
 	    }
 
@@ -491,11 +550,11 @@ int main(int ac, char *av[])
 	      port = atoi(av[++i]);
 	    }
 
+	    else if (strncmp(av[i], "-receive", 4) == 0) 
+	      receive = 1;
+
 	    else if (strcmp(av[i], "-report") == 0) 
 	      report = 1;
-
-	    else if (strcmp(av[i], "-cmd") == 0) 
-	      cmd = 1;
 
 	    else if (strcmp(av[i], "-infile") == 0) 
 	      filedev = 1;
@@ -511,9 +570,11 @@ int main(int ac, char *av[])
 
 	  }
 
-	if(debug) 
-	  printf("pp=%d\n", proxy_port);
-	  printf("remote_host=%s\n", remote_host);
+	if(debug) {
+	  printf("send_port=%d\n", send_port);
+	  printf("send_host=%s\n", send_host);
+	  printf("receive=%d\n", receive);
+	}
 
 	if(reportpath) {
 		struct stat statb;
@@ -592,7 +653,6 @@ int main(int ac, char *av[])
 	}
 
 
-
 	/* Term ok deal w. text to send */
 	
 	if(background) {
@@ -663,55 +723,8 @@ int main(int ac, char *av[])
 
 	if(reportpath) umask(0);
 	
-	listen_sd = socket(AF_INET, SOCK_STREAM, 0);
 
-	if (listen_sd < 0)  { 
-	  perror("socket() failed");
-	  exit(-1);
-	}
-
-	/* Allow socket descriptor to be reuseable */
-	rc = setsockopt(listen_sd, SOL_SOCKET,  SO_REUSEADDR,
-			(char *)&on, sizeof(on));
-	if (rc < 0)   {
-	  perror("setsockopt() failed");
-	  close(listen_sd);
-	  exit(-1);
-	}
-
-	/* Set socket to be nonblocking. All of the sockets for    
-	   the incoming connections will also be nonblocking since  
-	   they will inherit that state from the listening socket.   */
-
-	rc = ioctl(listen_sd, FIONBIO, (char *)&on);
-	if (rc < 0)  {
-	    perror("ioctl() failed");
-	    close(listen_sd);
-	    exit(-1);
-	}
-
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family      = AF_INET;
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port        = htons(port);
-
-	rc = bind(listen_sd, (struct sockaddr *)&addr, sizeof(addr));
- 
-	if (rc < 0)   {
-	  perror("bind() failed");
-	  close(listen_sd);
-	  exit(-1);
-	}
-
-	/* Set the listen back log  */
-
-	rc = listen(listen_sd, 32);
-
-	if (rc < 0)   {
-	  perror("listen() failed");
-	  close(listen_sd);
-	  exit(-1);
-	}
+	listen_sd = lissen(addr, port);
 
 	memset(fds, 0 , sizeof(fds));
 
@@ -730,7 +743,7 @@ int main(int ac, char *av[])
 	while (1)  {
 	  int i, ii;
 	  static int proxy_start = 0;
-	  char outbuf[512];
+	  char outbuf[BUFSIZ];
 
 	  if (proxy_start++ == 0)
 	    timeout = (10);
@@ -746,18 +759,23 @@ int main(int ac, char *av[])
 	    }
 	    
 	    if (rc == 0)  {
-	      /* Try (re)-connect to proxy */
+	      /* TIMEOUT: Try (re)-connect to proxy */
 	      if(send_2_proxy && (proxy_fd == -1)) {
 
 		if(debug)
-		  printf("Connecting %s on port %d\n", remote_host, proxy_port);
+		  printf("Trying %s on port %d. Connect ", send_host, send_port);
 
-		proxy_fd = connect_proxy(remote_host, proxy_port);
+		proxy_fd = connect_remote(send_host, send_port);
 		if (proxy_fd >= 0) {
 		  fds[nfds].fd = proxy_fd;
 		  fds[nfds].events = POLLIN;
 		  nfds++;
+		  if(debug)
+		    printf("succeded\n");
 		}
+		else if(debug)
+		  printf("failed\n");
+
 	      }
 	      continue;
 	    }
@@ -830,7 +848,8 @@ int main(int ac, char *av[])
 		
 		new_sd = accept(listen_sd, NULL, NULL);
 		if (new_sd != -1)  {
-		  // printf("  New incoming connection - %d\n", new_sd);
+		  if(debug)
+		    printf("  New incoming listner connection - %d\n", new_sd);
 		  fds[nfds].fd = new_sd;
 		  fds[nfds].events = POLLIN;
 		  nfds++;
@@ -839,9 +858,12 @@ int main(int ac, char *av[])
 	      }
 
 	      if (fds[i].revents & POLLIN)  {
-
 		close_conn = FALSE;
-		rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+
+		bzero(&saddr, sizeof(saddr));
+		//rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+		rc = recvfrom(fds[i].fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&saddr, (socklen_t*) &saddr_len);
+
 		if (rc < 0)  {
 		  if (errno != EWOULDBLOCK)  {
 		    close_conn = TRUE;
@@ -852,14 +874,22 @@ int main(int ac, char *av[])
 		if (rc == 0) 
 		  close_conn = TRUE;
 
-		if(rc > 0) {
+		if(rc > 0 && receive) {
 		  len = rc;
-		  buffer[len-1] = 0xd;
-
+		  buffer[len-1] = ' ';
+		  memset(outbuf, 0, sizeof(outbuf));
+		  //memcpy(outbuf, buffer, len);
+		  {
+		    struct sockaddr_in *v4 =  (struct sockaddr_in *) &saddr;
+		    sprintf(outbuf, "%s SRC=%s\n", buffer, inet_ntoa(v4->sin_addr));
+		  }
+		  send_2_listners = 1;
+#if 0
 		  if(cmd) 
 		    rc = write(usb_fd, &buffer, len);
 		  else 
 		    rc = send(fds[i].fd, buffer, len, 0);
+#endif
 		}
 
 		if (rc < 0)  
@@ -871,8 +901,9 @@ int main(int ac, char *av[])
 		  if(fds[i].fd == proxy_fd) {
 		   proxy_fd = -1;
 		   if(debug)
-		     printf("Closed connection to %s on port %d \n", remote_host, proxy_port);
+		     printf("Closed connection to %s on port %d \n", send_host, send_port);
 		  }
+
 		  fds[i].fd = -1;
 		  compress_array = TRUE;
 		}
@@ -885,6 +916,7 @@ int main(int ac, char *av[])
 	       and  revents fields because the events will always
 	       be POLLIN in this case, and revents is output.  */
 	    
+
 	    if (compress_array)  {
 	      compress_array = FALSE;
 	      for (i = 0; i < nfds; i++)  {
@@ -900,6 +932,7 @@ int main(int ac, char *av[])
 	    if(send_2_listners) {
 	      current_size = nfds;
 	      for (i = 0; i < current_size; i++)   {
+
 
 		if (fds[i].fd == usb_fd)
 		  continue;
