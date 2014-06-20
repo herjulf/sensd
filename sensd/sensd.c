@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.7 140619"
+#define VERSION "4.8 140620"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -67,8 +67,9 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd: A WSN gateway, proxy and hub\n");
-  printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] DEV\n");
+  printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] [ -D dev]\n");
 
+  printf(" -D dev       Serial or USB dev. Typically /dev/ttyUSB0\n");
   printf(" -f file      Local logfile. Default is /var/log/sensors.dat\n");
   printf(" -report      Enable TCP reports\n");
   printf(" -p port      TCP server port. Default %d\n", SERVER_PORT);
@@ -80,11 +81,11 @@ void usage(void)
   printf(" -g gpsdev    Device for gps\n");
   printf(" -infile      Read data from a file (named pipe)\n");
   printf(" -debug       Debug on stdout\n");
-  printf("Example 1: sensd  /dev/ttyUSB0\n");
-  printf("Example 2: sensd -report -f /dev/null -g /dev/ttyUSB1 /dev/ttyUSB0\n");
-  printf("Example 3: sensd -report -f /dev/null -LAT -2.10 -LON 12.10 /dev/ttyUSB0\n");
-  printf("Example 4: sensd -report -send addr -f /dev/null /dev/ttyUSB0\n");
-  printf("Example 5: sensd -report -receive   -f /dev/null /dev/ttyUSB0\n");
+  printf("Example 1: sensd  -D /dev/ttyUSB0\n");
+  printf("Example 2: sensd -report -f /dev/null -g /dev/ttyUSB1 -D /dev/ttyUSB0\n");
+  printf("Example 3: sensd -report -f /dev/null -LAT -2.10 -LON 12.10 -D /dev/ttyUSB0\n");
+  printf("Example 4: sensd -report -send addr -f /dev/null -D /dev/ttyUSB0\n");
+  printf("Example 5: sensd -report -receive   -f /dev/null -D /dev/ttyUSB0\n");
   printf("Example 6: sensd -report -f /dev/null -infile mkfifo_file\n");
 
   exit(-1);
@@ -458,6 +459,7 @@ int main(int ac, char *av[])
 	int res;
 	int i, len;
 	char *prog = basename (av[0]);
+	char *serialdev = NULL;
 	int    rc;
 	int    listen_sd = -1, new_sd = -1;
 	int    compress_array = FALSE;
@@ -550,6 +552,10 @@ int main(int ac, char *av[])
 	      port = atoi(av[++i]);
 	    }
 
+	    else if (strncmp(av[i], "-D", 2) == 0) {
+	      serialdev = av[++i];
+	    }
+
 	    else if (strncmp(av[i], "-receive", 4) == 0) 
 	      receive = 1;
 
@@ -609,12 +615,27 @@ int main(int ac, char *av[])
 	    exit(-1);
 	}
 	  
-	  strncpy(dial_tty, devtag_get(av[i]), sizeof(dial_tty));
-
+	if(serialdev) {
+	  strncpy(dial_tty, devtag_get(serialdev), sizeof(dial_tty));
 	  while (! get_lock()) {
 	    if(--retry == 0)
 	      exit(-1);
 	    sleep(1);
+	  }
+
+	  if ((usb_fd = open(devtag_get(serialdev), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
+	    perror("bad terminal device, try another");
+	    exit(-1);
+	  }
+	  
+	  if (tcgetattr(usb_fd, &tp) < 0) {
+	    perror("Couldn't get term attributes");
+	    exit(-1);
+	  }
+	  tp_usb_old = tp;
+	  
+	  if( set_term(usb_fd, baud, tp) != 1)
+	    exit(-1);
 	}
 
 	if(filedev) {
@@ -623,21 +644,7 @@ int main(int ac, char *av[])
 			fprintf(stderr, "Failed to open filedev '%s'\n", filename);
 			exit(2);
 		}
-	} else {
-		if ((usb_fd = open(devtag_get(av[i]), O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0) {
-		  perror("bad terminal device, try another");
-		  exit(-1);
-		}
-	
-		if (tcgetattr(usb_fd, &tp) < 0) {
-			perror("Couldn't get term attributes");
-			exit(-1);
-		}
-		tp_usb_old = tp;
-
-		if( set_term(usb_fd, baud, tp) != 1)
-		  exit(-1);
-	}
+	} 
 
 	if(gpsdev) {
 	  gps_lat = mmap(NULL, sizeof(gps_lat), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
@@ -734,9 +741,12 @@ int main(int ac, char *av[])
 	fds[nfds].fd = listen_sd;
 	fds[nfds].events = POLLIN;
 	nfds++;
-	fds[nfds].fd = usb_fd;
-	fds[nfds].events = POLLIN;
-	nfds++;
+
+	if(serialdev) {
+	  fds[nfds].fd = usb_fd;
+	  fds[nfds].events = POLLIN;
+	  nfds++;
+	}
 
 	j = 0;
 
@@ -968,8 +978,9 @@ int main(int ac, char *av[])
 	    exit(-1);
 	  }
 	}
-	
-	lockfile_remove();
+
+	if(serialdev)
+	  lockfile_remove();
 	exit(0);
 }
 
