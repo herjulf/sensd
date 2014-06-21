@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.8 140620"
+#define VERSION "4.9 140621"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -476,7 +476,7 @@ int main(int ac, char *av[])
 	unsigned short report = 0;
 	int debug = 0;
 	struct sockaddr saddr;
-	int saddr_len = sizeof(saddr);
+	socklen_t saddr_len = sizeof(saddr);
 
 	if (strcmp(prog, "sensd") == 0) {
 	  baud = B38400;
@@ -855,7 +855,7 @@ int main(int ac, char *av[])
 	      }
 
 	      if (fds[i].fd == listen_sd && fds[i].revents & POLLIN)   {
-		
+
 		new_sd = accept(listen_sd, NULL, NULL);
 		if (new_sd != -1)  {
 		  if(debug)
@@ -870,10 +870,7 @@ int main(int ac, char *av[])
 	      if (fds[i].revents & POLLIN)  {
 		close_conn = FALSE;
 
-		bzero(&saddr, sizeof(saddr));
-		//rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-		rc = recvfrom(fds[i].fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&saddr, (socklen_t*) &saddr_len);
-
+		rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 		if (rc < 0)  {
 		  if (errno != EWOULDBLOCK)  {
 		    close_conn = TRUE;
@@ -887,11 +884,16 @@ int main(int ac, char *av[])
 		if(rc > 0 && receive) {
 		  len = rc;
 		  buffer[len-1] = ' ';
+		  memset(&saddr, 0, sizeof(saddr));
 		  memset(outbuf, 0, sizeof(outbuf));
-		  //memcpy(outbuf, buffer, len);
+		  saddr_len = sizeof(saddr);
+
+		  getpeername(fds[i].fd, (struct sockaddr *)&saddr, &saddr_len);
+
 		  {
 		    struct sockaddr_in *v4 =  (struct sockaddr_in *) &saddr;
 		    sprintf(outbuf, "%s SRC=%s\n", buffer, inet_ntoa(v4->sin_addr));
+		    memset(&buffer, 0, sizeof(buffer));
 		  }
 		  send_2_listners = 1;
 #if 0
