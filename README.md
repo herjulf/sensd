@@ -1,5 +1,5 @@
-sensd - A WSN Internet gateway and daemon
-=========================================
+sensd - A WSN Internet gateway, daemon and hub
+==============================================
 
 Authors
 --------					
@@ -13,6 +13,11 @@ reports, including collection, storage and retrieval using standard text tools.
 In sensor data can be sent over Internet to active listeners. The concept also 
 includes a mapping to URI (Unified Resource Identifier) to form a WSN caching 
 server similar to CoAP using http-proxy.
+
+sensd also includes a proxy functionality primary to forward WSN data to a
+public IP. This in case he GW is behind a NAT. sensd can be used both to 
+forward data but it can also work as the "proxy" server receiving WSN data 
+and allowing multiple TCP listeners.
 
 All programs are written C, Java-script and bash. And designed for for small
 footprint and minimal dependencies. sensd runs on Raspberry Pi and openwrt.
