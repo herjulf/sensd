@@ -81,12 +81,13 @@ void usage(void)
   printf(" -g gpsdev    Device for gps\n");
   printf(" -infile      Read data from a file (named pipe)\n");
   printf(" -debug       Debug on stdout\n");
-  printf("Example 1: sensd  -D /dev/ttyUSB0\n");
-  printf("Example 2: sensd -report -f /dev/null -g /dev/ttyUSB1 -D /dev/ttyUSB0\n");
-  printf("Example 3: sensd -report -f /dev/null -LAT -2.10 -LON 12.10 -D /dev/ttyUSB0\n");
-  printf("Example 4: sensd -report -send addr -f /dev/null -D /dev/ttyUSB0\n");
-  printf("Example 5: sensd -report -receive   -f /dev/null -D /dev/ttyUSB0\n");
-  printf("Example 6: sensd -report -f /dev/null -infile mkfifo_file\n");
+  printf("\nExample 1: Local file logging\n sensd  -D /dev/ttyUSB0\n");
+  printf("Example 2: TCP listers. No file logging\n sensd -report -f /dev/null -D /dev/ttyUSB0\n");
+  printf("Example 3: Send to proxy\n sensd -report -send addr -f /dev/null -D /dev/ttyUSB0\n");
+  printf("Example 4: Be a proxy. TCP listers. No file logging\n sensd -report -receive -f /dev/null\n");
+  printf("Example 5: Use a named pipe\n sensd -report -f /dev/null -infile mkfifo_file\n");
+  printf("Example 6: Use LAT/LON\n sensd -report -f /dev/null -LAT -2.10 -LON 12.10 -D /dev/ttyUSB0\n");
+  printf("Example 7: Use a gps device\n sensd -report -f /dev/null -g /dev/ttyUSB1 -D /dev/ttyUSB0\n");
 
   exit(-1);
 }
