@@ -1,0 +1,29 @@
+              Proxy, and merge of sensordata.
+              ------------------------------
+
+Introduction
+------------
+There has been some request for support to sensd to have gateways behind NAT's.
+Some experimenta code has been added to sensd to address this need.
+For test an open proxy is now running fon radio-sensors.com using port 1236
+
+
+Example how to forward data to the Radio-Senosrs proxy:
+-------------------------------------------------------
+sensd -debug  -report -send_port 1236 -send radio-sensors.com -f /dev/null -D /dev/ttyUSB0 
+
+To receive sensors data:
+------------------------
+To receive the reports. Connect and listen TCP port 1236 with netcat, Android 
+or IoS app etc. 
+
+The sensd proxy function will accept multiple proxy forwarders. This way a 
+merge/hub functionally is achieved.
+
+Note corresponding SRC= IP address is added to each remote report.
+
+To run a "proxy":
+-----------------
+sensd -p 1236 -report -receive -f /dev/null
+
+
