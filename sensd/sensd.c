@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "5.0 140624"
+#define VERSION "5.1 140624"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -448,7 +448,7 @@ int main(int ac, char *av[])
 	int usb_fd;
 	int file_fd;
 	int gps_fd;
-	int proxy_fd = -1;
+	int send_host_sd = -1;
 	int receive = 0;
 	char io[BUFSIZE];
 	char buf[BUFSIZE];
@@ -769,22 +769,24 @@ int main(int ac, char *av[])
 	    
 	    if (rc == 0)  {
 	      /* TIMEOUT: Try (re)-connect to proxy */
-	      if(send_host && (proxy_fd == -1)) {
+	      if(send_host && (send_host_sd == -1)) {
 
 		if(debug)
 		  printf("Trying %s on port %d. Connect ", send_host, send_port);
 
-		proxy_fd = connect_remote(send_host, send_port);
-		if (proxy_fd >= 0) {
-		  fds[nfds].fd = proxy_fd;
+		send_host_sd = connect_remote(send_host, send_port);
+		if (send_host_sd >= 0) {
+		  fds[nfds].fd = send_host_sd;
 		  fds[nfds].events = POLLIN;
 		  nfds++;
 		  if(debug)
 		    printf("succeded\n");
 		}
-		else if(debug)
-		  printf("failed\n");
-
+		else {
+		  send_host_sd = -1;
+		  if(debug)
+		    perror("connect\n");
+		}
 	      }
 	      continue;
 	    }
@@ -909,8 +911,9 @@ int main(int ac, char *av[])
 		if (close_conn)  {
 		  close(fds[i].fd);
 
-		  if(fds[i].fd == proxy_fd) {
-		   proxy_fd = -1;
+		  if(fds[i].fd == send_host_sd) {
+		   send_host_sd = -1;
+
 		   if(debug)
 		     printf("Closed connection to %s on port %d \n", send_host, send_port);
 		  }
