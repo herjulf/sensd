@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "4.9 140621"
+#define VERSION "5.0 140624"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -449,7 +449,6 @@ int main(int ac, char *av[])
 	int file_fd;
 	int gps_fd;
 	int proxy_fd = -1;
-	int send_2_proxy = 0;
 	int receive = 0;
 	char io[BUFSIZE];
 	char buf[BUFSIZE];
@@ -466,7 +465,7 @@ int main(int ac, char *av[])
 	int    compress_array = FALSE;
 	int    close_conn;
 	char   buffer[BUFSIZE];
-	char   *send_host;
+	char   *send_host = NULL;
 	struct sockaddr_in   addr;
 	int    timeout;
 	struct pollfd fds[200];
@@ -546,7 +545,6 @@ int main(int ac, char *av[])
 
 	    else if (strcmp(av[i], "-send") == 0) {
 	      send_host = av[++i];
-	      send_2_proxy = 1;
 	    }
 
 	    else if (strncmp(av[i], "-p", 2) == 0) {
@@ -759,7 +757,7 @@ int main(int ac, char *av[])
 	  if (proxy_start++ == 0)
 	    timeout = (10);
 	  else 
-	    timeout = 5000;
+	    timeout = 2000;
 
 	  rc = poll(fds, nfds, timeout);
 	    send_2_listners = 0;
@@ -771,7 +769,7 @@ int main(int ac, char *av[])
 	    
 	    if (rc == 0)  {
 	      /* TIMEOUT: Try (re)-connect to proxy */
-	      if(send_2_proxy && (proxy_fd == -1)) {
+	      if(send_host && (proxy_fd == -1)) {
 
 		if(debug)
 		  printf("Trying %s on port %d. Connect ", send_host, send_port);
