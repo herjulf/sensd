@@ -46,6 +46,7 @@
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
+#define LOGFILE "/var/log/sensors.dat"
 
 char lockfile[128]; /* UUCP lock file of terminal */
 char dial_tty[128];
@@ -70,7 +71,7 @@ void usage(void)
   printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] [ -D dev]\n");
 
   printf(" -D dev       Serial or USB dev. Typically /dev/ttyUSB0\n");
-  printf(" -f file      Local logfile. Default is /var/log/sensors.dat\n");
+  printf(" -f file      Local logfile. Default is %s\n", LOGFILE);
   printf(" -report      Enable TCP reports\n");
   printf(" -p port      TCP server port. Default %d\n", SERVER_PORT);
   printf(" -send addr   Send data to a proxy\n");
@@ -458,7 +459,6 @@ int main(int ac, char *av[])
 	unsigned short filedev = 0;
 	int res;
 	int i, len;
-	char *prog = basename (av[0]);
 	char *serialdev = NULL;
 	int    rc;
 	int    listen_sd = -1, new_sd = -1;
@@ -478,14 +478,12 @@ int main(int ac, char *av[])
 	struct sockaddr saddr;
 	socklen_t saddr_len = sizeof(saddr);
 
-	if (strcmp(prog, "sensd") == 0) {
-	  baud = B38400;
-	  background = 1;
-	  date = 1;
-	  utime = 1;
-	  utc = 0;
-	  filename = "/var/log/sensors.dat";
-	}
+	baud = B38400;
+	background = 1;
+	date = 1;
+	utime = 1;
+	utc = 0;
+	filename = LOGFILE;
 
 	if(ac == 1) 
 	  usage();
