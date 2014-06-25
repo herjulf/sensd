@@ -913,13 +913,12 @@ int main(int ac, char *av[])
 
 		  if(fds[i].fd == send_host_sd) {
 		   send_host_sd = -1;
+		   fds[i].fd = -1;
+		   compress_array = TRUE;
 
 		   if(debug)
 		     printf("Closed connection to %s on port %d \n", send_host, send_port);
 		  }
-
-		  fds[i].fd = -1;
-		  compress_array = TRUE;
 		}
 	      }  /* End of existing connection */
 	      fds[i].revents = 0;
