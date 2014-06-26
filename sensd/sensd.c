@@ -55,6 +55,8 @@ int pid;
 int retry = 6;
 
 float *gps_lon, *gps_lat;
+char *domain = NULL;
+
 
 #define BUFSIZE 1024
 #define SERVER_PORT  1234
@@ -68,7 +70,7 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd: A WSN gateway, proxy and hub\n");
-  printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] [ -D dev]\n");
+  printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-domain dmn] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] [ -D dev]\n");
 
   printf(" -D dev       Serial or USB dev. Typically /dev/ttyUSB0\n");
   printf(" -f file      Local logfile. Default is %s\n", LOGFILE);
@@ -82,6 +84,7 @@ void usage(void)
   printf(" -g gpsdev    Device for gps\n");
   printf(" -infile      Read data from a file (named pipe)\n");
   printf(" -debug       Debug on stdout\n");
+  printf(" -domain dmn  Add domain tag\n");
   printf("\nExample 1: Local file logging\n sensd  -D /dev/ttyUSB0\n");
   printf("Example 2: TCP listers. No file logging\n sensd -report -f /dev/null -D /dev/ttyUSB0\n");
   printf("Example 3: Send to proxy\n sensd -report -send addr -f /dev/null -D /dev/ttyUSB0\n");
@@ -256,6 +259,11 @@ void print_report_header(char *gpsdev, char *datebuf)
 
   if(lon > GPS_MISS) {
     sprintf(buf, "GW_LON=%-3.5f ", lon);
+    strcat(datebuf, buf);
+  }
+
+  if(domain) {
+    sprintf(buf, "DOMAIN=%s ", domain);
     strcat(datebuf, buf);
   }
 }
@@ -536,6 +544,10 @@ int main(int ac, char *av[])
 	    else if (strncmp(av[i], "-debug", 6) == 0) {
 	      debug = 1;
 	    }
+
+	    else if (strncmp(av[i], "-domain", 7) == 0) {
+	      domain = av[++i];
+	    }
 	    
 	    else if (strncmp(av[i], "-send_port", 9) == 0) {
 	      send_port = atoi(av[++i]);
@@ -576,6 +588,7 @@ int main(int ac, char *av[])
 	if(debug) {
 	  printf("send_port=%d\n", send_port);
 	  printf("send_host=%s\n", send_host);
+	  printf("domain=%s\n", domain);
 	  printf("receive=%d\n", receive);
 	}
 
@@ -783,7 +796,7 @@ int main(int ac, char *av[])
 		else {
 		  send_host_sd = -1;
 		  if(debug)
-		    perror("connect\n");
+		    perror("connect");
 		}
 	      }
 	      continue;
