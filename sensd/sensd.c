@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "5.1 140624"
+#define VERSION "5.2 140714"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -922,10 +922,11 @@ int main(int ac, char *av[])
 		if (close_conn)  {
 		  close(fds[i].fd);
 
-		  if(fds[i].fd == send_host_sd) {
-		   send_host_sd = -1;
 		   fds[i].fd = -1;
 		   compress_array = TRUE;
+
+		  if(fds[i].fd == send_host_sd) {
+		   send_host_sd = -1;
 
 		   if(debug)
 		     printf("Closed connection to %s on port %d \n", send_host, send_port);
