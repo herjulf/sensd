@@ -650,7 +650,7 @@ int main(int ac, char *av[])
 
 	if(filedev) {
 		usb_fd = open(av[i],O_RDONLY);
-		if(file_fd < 0) {
+		if(usb_fd < 0) {
 			fprintf(stderr, "Failed to open filedev '%s'\n", filename);
 			exit(2);
 		}
