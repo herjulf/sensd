@@ -897,7 +897,7 @@ int main(int ac, char *av[])
 		  len = rc;
 		  buffer[len-1] = ' ';
 		  memset(&saddr, 0, sizeof(saddr));
-		  memset(outbuf, 0, sizeof(outbuf));
+		  memset(&outbuf, 0, sizeof(outbuf));
 		  saddr_len = sizeof(saddr);
 
 		  getpeername(fds[i].fd, (struct sockaddr *)&saddr, &saddr_len);
