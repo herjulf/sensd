@@ -254,3 +254,13 @@ The WSN data logging and caching concept is in actual use with Contiki, RIME
 broadcast application. 
 
 
+Tips
+----
+One can use netcat to listen to reports:
+
+Example:
+nc radio-sensors.com 1235
+
+To save in file use nohup:
+
+nohup nc radio-sensors.com 1235 > /var/log/sensors.dat
