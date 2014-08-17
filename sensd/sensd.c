@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "5.2 140714"
+#define VERSION "5.3 140817"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -57,6 +57,7 @@ int retry = 6;
 float *gps_lon, *gps_lat;
 char *domain = NULL;
 
+int debug = 0;
 
 #define BUFSIZE 1024
 #define SERVER_PORT  1234
@@ -277,6 +278,9 @@ int do_report(const char *buf, const char *reportpath)
 	char fn[512];
 	char tmpfn[512];
 
+	if(debug)
+	  printf("do_report \n");
+
 	while(*s) {
 		while(*s && *s == ' ') s++;
 
@@ -290,6 +294,31 @@ int do_report(const char *buf, const char *reportpath)
 			if(!*n) {
 				if(*val && val[strlen(val)-1] == '\n') val[strlen(val)-1] = 0;
 				if(*val && val[strlen(val)-1] == ']') val[strlen(val)-1] = 0;
+			}
+			/*
+			  We have 3 ID's for node. We select in order. 
+			  E64 -  EUI64 
+			  ID  -  DALLAS
+			  TXT -  Fri-text format
+			*/
+
+			if(!id) {
+				if((strcmp(s, "TXT")==0) && *val) {
+					id = val;
+					snprintf(fn, sizeof(fn), "%s/%s", reportpath, id);
+					if(stat(fn, &statb)) {
+						mkdir(fn, 0755);
+					}
+				}
+			}
+			if(!id) {
+				if((strcmp(s, "E64")==0) && *val) {
+					id = val;
+					snprintf(fn, sizeof(fn), "%s/%s", reportpath, id);
+					if(stat(fn, &statb)) {
+						mkdir(fn, 0755);
+					}
+				}
 			}
 			if(!id) {
 				if((strcmp(s, "ID")==0) && *val) {
@@ -482,7 +511,6 @@ int main(int ac, char *av[])
 	unsigned short port = SERVER_PORT;
 	int send_port = SEND_PORT;
 	unsigned short report = 0;
-	int debug = 0;
 	struct sockaddr saddr;
 	socklen_t saddr_len = sizeof(saddr);
 
@@ -590,6 +618,7 @@ int main(int ac, char *av[])
 	  printf("send_host=%s\n", send_host);
 	  printf("domain=%s\n", domain);
 	  printf("receive=%d\n", receive);
+	  printf("reportpath=%s\n", reportpath);
 	}
 
 	if(reportpath) {
