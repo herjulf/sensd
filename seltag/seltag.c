@@ -27,8 +27,19 @@ void usage(void)
 struct tag {
   char buf[40];
 };
-
 struct tag t[40];
+unsigned int year, mon, day, hour, min, sec;
+
+
+int time_parse(char *buf)
+{
+    int  res = sscanf(buf, 
+		   "%4d-%2d-%2d %2d:%2d:%2d",
+		      &year, &mon, &day, &hour, &min, &sec);
+    
+    return res;
+}
+
 
 int main(int ac, char *av[]) 
 {
@@ -63,7 +74,10 @@ int main(int ac, char *av[])
       res = strtok( NULL, " " );
     }
 
-    printf("%s", timebuf);
+    time_parse(timebuf);
+    printf("%04u-%02u-%02u %02u:%02u:%02u ",
+    		      year, mon, day, hour, min, sec);
+
 
     for(k = 2; k < ac; k++) 
       printf("%s ", t[k].buf);
