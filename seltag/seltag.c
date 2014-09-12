@@ -34,7 +34,7 @@ int main(int ac, char *av[])
 {
   char buf[BUFSIZ], buf1[BUFSIZ], *res;
   int i, j, k, cpy;
-
+  char timebuf[40];
   if (ac == 1 || strcmp(av[1], "-h") == 0) 
     usage();
 
@@ -46,9 +46,13 @@ int main(int ac, char *av[])
     for(k = 2; k < ac; k++) 
       strcpy( t[k].buf, "Miss");
 
+    timebuf[0] = 0;
     for(i = 0;  res != NULL; i++ ) {
-      if(i < cpy)
-	printf( "%s ", res );
+
+      if(i < cpy) {
+      	strcat(timebuf, res);
+	strcat(timebuf, " ");
+       }
 
       for(k = 2; k < ac; k++) {
 	j = sscanf(res, av[k], buf1);   
@@ -58,6 +62,9 @@ int main(int ac, char *av[])
 
       res = strtok( NULL, " " );
     }
+
+    printf("%s", timebuf);
+
     for(k = 2; k < ac; k++) 
       printf("%s ", t[k].buf);
     printf("\n");
