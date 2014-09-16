@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define VERSION "0.91 140912"
+#define VERSION "1.0 140916"
 
 /*
  *  Copyright Robert Olsson <robert@herjulf.se>
@@ -14,16 +14,6 @@
  *		as published by the Free Software Foundation; either version
  *		2 of the License, or (at your option) any later version.
 */
-
-void usage(void)
-{
-  printf("\nseltag formats data on stdin by tag to column format on stdout\n");
-  printf("Version %s\n\n", VERSION);
-  printf("Example\n");
-  printf("seltag 2 ID=#s T=#s V_MCU=#s < infile > outfile\n");
-  printf("2 first fields copied as-is. Labels w. ID= T= V_MCU= are extracted and copied w/o label\n\n");
-  exit(-1);
-}
 
 struct tag {
   char buf[40];
@@ -108,24 +98,73 @@ void time_adjust(int offset)
   printf("%s ", tbuf);
 }
 
+void usage(void)
+{
+  printf("\nseltag formats data on stdin by tag to column format on stdout\n");
+  printf("Version %s\n\n", VERSION);
+  printf("Example\n");
+  printf("seltag [-debug ] [-first_field 2] [-adjust_time 0] -sel  ID=%%s T=%%s V_MCU=%%s < infile > outfile\n");
+  printf(" -sel           colums to extract. Format TAG=%%s\n");
+  printf(" -debug\n");
+  printf(" -adjust_time   add or del number Sec\n");
+  //printf(" -first_fields  copied as-is. Time and date.\n");
+  printf("\nExample 1: Extract T\n seltag -sel T=%%s < infile\n");
+  printf("Example 2: Extract V_IN, T, RH\n seltag -sel V_IN=%%s T=%%s RH=%%s < infile\n");
+  printf("Example 3: Extract T, RH and adjust -2Hours\n seltag -adjust_time -7200 -sel T=%%s RH=%%s < infile\n");
+    exit(-1);
+}
+
 int main(int ac, char *av[]) 
 {
   char buf[BUFSIZ], buf1[BUFSIZ], *res;
-  int i, j, k, cpy;
+  int i, j, k;
+  int cpy, debug;
   char timebuf[40];
-  int timeadjust = 0;
+  int timeadjust;
+  int selpos;
 
   if (ac == 1 || strcmp(av[1], "-h") == 0) 
     usage();
 
-  cpy = atoi(av[1]);
+  debug = 0;
+  cpy = 2;
+  timeadjust = 0;
+  selpos = 0;
 
-  //timeadjust = -2*60*60;
+  for(i = 1; (i < ac) && (av[i][0] == '-'); i++)  {
+    
+    if (strncmp(av[i], "-debug", 6) == 0) {
+      debug = 1;
+    }
+    else if (strncmp(av[i], "-time_adjust", 12) == 0) {
+      timeadjust = atoi(av[++i]);
+    }
+    //else if (strncmp(av[i], "-first_fields", 13) == 0) {
+    //  cpy = atoi(av[++i]);
+    //}
+    else if (strncmp(av[i], "-sel", 4) == 0) {
+      selpos = ++i;
+      break;
+    }
+    else
+      usage();
+  }
+  
+  if(debug) {
+    printf("first_fields=%d\n", cpy);
+    printf("time_adjust=%d\n", timeadjust);
+    printf("sel_pos=%d\n", selpos);
+  }
+  
+  if(selpos == 0) {
+    printf("\nError. You must give -sel followed by selection criterias\n\n");
+    usage();
+  }
 
-  while ( fgets ( buf, BUFSIZ, stdin ) != NULL ) {
+    while ( fgets ( buf, BUFSIZ, stdin ) != NULL ) {
     res = strtok( buf, " " );
 
-    for(k = 2; k < ac; k++) 
+    for(k = selpos; k < ac; k++) 
       strcpy( t[k].buf, "Miss");
 
     timebuf[0] = 0;
@@ -136,7 +175,7 @@ int main(int ac, char *av[])
 	strcat(timebuf, " ");
        }
 
-      for(k = 2; k < ac; k++) {
+      for(k = selpos; k < ac; k++) {
 	j = sscanf(res, av[k], buf1);   
 	if(j) 
 	  strcpy( t[k].buf, buf1);
