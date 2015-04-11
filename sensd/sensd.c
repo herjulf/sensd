@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "5.4 2015-01-01"
+#define VERSION "5.5 2015-04-11"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
