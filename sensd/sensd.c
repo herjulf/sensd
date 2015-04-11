@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "5.3 140817"
+#define VERSION "5.5 150411"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -79,6 +79,7 @@ void usage(void)
   printf(" -p port      TCP server port. Default %d\n", SERVER_PORT);
   printf(" -send addr   Send data to a proxy\n");
   printf(" -receive     Receive. Be a proxy\n");
+  printf(" -receive_time_local   Use local time\n");
   printf(" -send_port port  Set proxyport. Default %d\n", SEND_PORT);
   printf(" -utc         Time in UTC\n");
   printf(" -R path      Path for reports. One dir per sensor. One file per value\n");
@@ -215,6 +216,28 @@ int get_lock()
   }
   lockfile_create();
   return 1;
+}
+
+void print_report_time(char *ibuf)
+{
+  time_t raw_time;
+  struct tm *tp;
+  char buf[256];
+
+  time ( &raw_time );
+
+  if(utc)
+    tp = gmtime ( &raw_time );
+  else
+    tp = localtime ( &raw_time );
+
+  if(date) {
+	  sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d TZ=%s ",
+		  tp->tm_year+1900, tp->tm_mon+1, 
+		  tp->tm_mday, tp->tm_hour, 
+		  tp->tm_min, tp->tm_sec, tp->tm_zone);
+  }
+  memcpy(ibuf, buf, strlen(buf));
 }
 
 void print_report_header(char *gpsdev, char *datebuf)
@@ -488,6 +511,7 @@ int main(int ac, char *av[])
 	int gps_fd;
 	int send_host_sd = -1;
 	int receive = 0;
+	int receive_time_local = 0;
 	char io[BUFSIZE];
 	char buf[BUFSIZE];
 	char *filename = NULL;
@@ -593,6 +617,9 @@ int main(int ac, char *av[])
 	      serialdev = av[++i];
 	    }
 
+	    else if (strncmp(av[i], "-receive_time_local", 10) == 0) 
+	      receive_time_local = 1;
+
 	    else if (strncmp(av[i], "-receive", 4) == 0) 
 	      receive = 1;
 
@@ -618,6 +645,7 @@ int main(int ac, char *av[])
 	  printf("send_host=%s\n", send_host);
 	  printf("domain=%s\n", domain);
 	  printf("receive=%d\n", receive);
+	  printf("receive_time_local=%d\n", receive_time_local);
 	  printf("reportpath=%s\n", reportpath);
 	}
 
@@ -935,6 +963,11 @@ int main(int ac, char *av[])
 		    struct sockaddr_in *v4 =  (struct sockaddr_in *) &saddr;
 		    sprintf(outbuf, "%s SRC=%s\n", buffer, inet_ntoa(v4->sin_addr));
 		    memset(&buffer, 0, sizeof(buffer));
+
+		    /* override incoming time*/
+		    if(receive_time_local)
+		      print_report_time(&outbuf[0]);
+
 		  }
 		  send_2_listners = 1;
 #if 0
