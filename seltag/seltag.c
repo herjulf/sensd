@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define VERSION "1.0 140916"
+#define VERSION "1.0 150624"
 
 /*
  *  Copyright Robert Olsson <robert@herjulf.se>
@@ -103,14 +103,14 @@ void usage(void)
   printf("\nseltag formats data on stdin by tag to column format on stdout\n");
   printf("Version %s\n\n", VERSION);
   printf("Example\n");
-  printf("seltag [-debug ] [-first_field 2] [-adjust_time 0] -sel  ID=%%s T=%%s V_MCU=%%s < infile > outfile\n");
+  printf("seltag [-debug ] [-first_field 2] [-time_adjust 0] -sel  ID=%%s T=%%s V_MCU=%%s < infile > outfile\n");
   printf(" -sel           colums to extract. Format TAG=%%s\n");
   printf(" -debug\n");
-  printf(" -adjust_time   add or del number Sec\n");
+  printf(" -time_adjust   add or del number Sec\n");
   //printf(" -first_fields  copied as-is. Time and date.\n");
   printf("\nExample 1: Extract T\n seltag -sel T=%%s < infile\n");
   printf("Example 2: Extract V_IN, T, RH\n seltag -sel V_IN=%%s T=%%s RH=%%s < infile\n");
-  printf("Example 3: Extract T, RH and adjust -2Hours\n seltag -adjust_time -7200 -sel T=%%s RH=%%s < infile\n");
+  printf("Example 3: Extract T, RH and adjust -2Hours\n seltag -time_adjust -7200 -sel T=%%s RH=%%s < infile\n");
     exit(-1);
 }
 
