@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script to collect data from pktgen for sensd
-# $1 filename where to open the pipe
+# $1 is the filename where the pipe will be opened
 # use pktgen rx with script output
 # echo display script > /proc/net/pktgen/pgrx
 # TX should be running. This script does not control it.
@@ -14,7 +14,7 @@
 host="root@host-pktgen"
 #Sensor ID
 ID=12345
-#interval to collect samples. It resets each time
+#interval between sample collection. It is reset each time
 interval=5
 
 ######################## DO NOT MODIFY #####################

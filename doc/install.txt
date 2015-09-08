@@ -7,7 +7,7 @@ Unix make build process.
 # First:
 git clone https://github.com/herjulf/sensd
 
-#To sync 
+#To sync
 cd sensd; git pull
 
 cd sensd
@@ -16,20 +16,20 @@ make
 
 cp sensd/sensd /sbin
 cp seltag/seltag /sbin
- 
-# When having connected the sensor node, you check with dmesg in which 
+
+# When having connected the sensor node, you check with dmesg in which
 # serial port it ended up in ended up.
 
-# Assuming it is in ttyUSB0, and you do not want to save the printouts, 
+# Assuming it is in ttyUSB0, and you do not want to save the printouts,
 # You can start the sensd daemon using the example below:
 
 /sbin/sensd -cmd -f/dev/null -report /dev/ttyUSB0
 
 #  -f/dev/null [default -f/var/log/sensors.dat ]
 #  -cmd        Allow remote commands. Consider security issues.
-#  -report     Enable sensor reports over the Internet. 
+#  -report     Enable sensor reports over the Internet.
 
-# But chose the command options for your WSN setup. 
+# But chose the command options for your WSN setup.
 # For options, usage and version etc.
 
-sensd -h  
+sensd -h
