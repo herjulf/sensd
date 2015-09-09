@@ -1,8 +1,8 @@
 
-The last report from can re retrieved form the sensd file tree. Which works as 
+The last report from can be retrieved form the sensd file tree. Which works as
 a "RESTful" caching server. Compare a CoAP HTTP proxy.
 
-An URI example. Three sensors in total. We "GET" the temperature (T) from 
+An URI example with three sensors in total. We "GET" the temperature (T) from
 from the sensors with ID == WSN1-GW1/28be51ce0200003
 
 http://herjulf.se/projects/sensor/WSN1-GW1/
@@ -28,9 +28,7 @@ http://herjulf.se/projects/sensor/WSN1-GW1/28be51ce02000031/
 
 http://herjulf.se/projects/sensor/WSN1-GW1/28be51ce02000031/T
 
-9.63
+    9.63
 
 
-Measurement time is in the URI. For a example wget (GNU 1.13.4) by default, when
-a file is downloaded, it's timestamps are set to match those from the remote 
-file.
+The measurement time is in the URI. For a example you can wget (GNU 1.13.4) a file which by default, when downloaded, should have timestamps that match those of the remote file.
