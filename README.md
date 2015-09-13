@@ -73,7 +73,7 @@ In most cases seltag is used together unix commands like grep, tail etc.
 
 Syntax:
 
-seltag 2 ID=%s T=%s V_MCU=%s < infile > outfile
+seltag -sel ID=%s T=%s V_MCU=%s < infile > outfile
 
 
 Example:
@@ -85,7 +85,7 @@ tail /var/log/sensors.dat | grep 28e13cce020000c6
 
 Running the seltag to filter out tag ID and T 
 
- tail /var/log/sensors.dat | grep 28e13cce020000c6 | seltag 2 ID=%s T=%s
+ tail /var/log/sensors.dat | grep 28e13cce020000c6 | seltag --sel ID=%s T=%s
 
 
  2013-12-30 23:58:24 28e13cce020000c6 19.00 
