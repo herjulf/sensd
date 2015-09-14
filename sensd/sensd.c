@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "5.5 2015-04-11"
+#define VERSION "6.0 2015-09-13"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -419,7 +419,7 @@ TABDLY BSDLY VTDLY FFDLY
 
 int connect_remote(char *host, int port)
 {
-    struct sockaddr_in addr;
+    struct sockaddr_in6 addr;
     struct hostent *he;
     int len, s, x, on = 1;
 
@@ -428,7 +428,7 @@ int connect_remote(char *host, int port)
 	return (-2);
 
     len = sizeof(addr);
-    s = socket(AF_INET, SOCK_STREAM, 0);
+    s = socket(AF_INET6, SOCK_STREAM, 0);
     if (s < 0)
 	return s;
 
@@ -436,9 +436,9 @@ int connect_remote(char *host, int port)
 
     len = sizeof(addr);
     memset(&addr, '\0', len);
-    addr.sin_family = AF_INET;
-    memcpy(&addr.sin_addr, he->h_addr, he->h_length);
-    addr.sin_port = htons(port);
+    addr.sin6_family = AF_INET6;
+    memcpy(&addr.sin6_addr, he->h_addr, he->h_length);
+    addr.sin6_port = htons(port);
     x = connect(s, (struct sockaddr *) &addr, len);
     if (x < 0) {
 	close(s);
@@ -448,10 +448,13 @@ int connect_remote(char *host, int port)
     return s;
 }
 
-int lissen(struct sockaddr_in addr, int port)
+
+
+int lissen(struct sockaddr_in6 addr, int port)
 {
-	int s = socket(AF_INET, SOCK_STREAM, 0);
+	int s = socket(AF_INET6, SOCK_STREAM, 0);
 	int rc, on = 1;
+	const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
 
 	if (s < 0)  { 
 		perror("socket() failed");
@@ -479,9 +482,10 @@ int lissen(struct sockaddr_in addr, int port)
 	}
 	  
 	memset(&addr, 0, sizeof(addr));
-	addr.sin_family      = AF_INET;
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port        = htons(port);
+	addr.sin6_family      = AF_INET6;
+	memcpy((void*) &in6addr_any, &addr.sin6_addr.s6_addr, sizeof(in6addr_any));
+
+	addr.sin6_port        = htons(port);
 	  
 	rc = bind(s, (struct sockaddr *)&addr, sizeof(addr));
 	  
@@ -527,7 +531,7 @@ int main(int ac, char *av[])
 	int    close_conn;
 	char   buffer[BUFSIZE];
 	char   *send_host = NULL;
-	struct sockaddr_in   addr;
+	struct sockaddr_in6   addr;
 	int    timeout;
 	struct pollfd fds[200];
 	int    nfds = 2, current_size = 0, j;
@@ -535,7 +539,7 @@ int main(int ac, char *av[])
 	unsigned short port = SERVER_PORT;
 	int send_port = SEND_PORT;
 	unsigned short report = 0;
-	struct sockaddr saddr;
+	struct sockaddr_in6 saddr;
 	socklen_t saddr_len = sizeof(saddr);
 
 	baud = B38400;
@@ -862,9 +866,11 @@ int main(int ac, char *av[])
 	    current_size = nfds;
 	    for (i = 0; i < current_size; i++)   {
 	      
+		
 	      if(fds[i].revents == 0)
 		continue;
 	      
+
 	      send_2_listners = 0;
 
 	      /* Buffers used
@@ -877,21 +883,23 @@ int main(int ac, char *av[])
 	      if (fds[i].fd == usb_fd && fds[i].revents & POLLIN)   {
 		memset(io,0,BUFSIZE);
 		res = read(usb_fd, io, BUFSIZE);
+
 		if(res > BUFSIZE){
 		}
 		else
 		  strcat(buf, "ERR read\n");
+
 	        if(filedev){
 		  /* We have input in one line */
-		    if(io[0] == '&' && io[1] == ':' && (date || utime))
-		      print_report_header(gpsdev, outbuf);
-		    strcat(outbuf, io);
-		    write(file_fd, outbuf, strlen(outbuf));
-		    if(reportpath) 
-		      do_report(buf, reportpath);
-
-		    if(report)
-		      send_2_listners = 1;
+		  if(io[0] == '&' && io[1] == ':' && (date || utime))
+		    print_report_header(gpsdev, outbuf);
+		  strcat(outbuf, io);
+		  write(file_fd, outbuf, strlen(outbuf));
+		  if(reportpath) 
+		    do_report(buf, reportpath);
+		  
+		  if(report)
+		    send_2_listners = 1;
 
 		}else{
 
@@ -960,8 +968,14 @@ int main(int ac, char *av[])
 		  getpeername(fds[i].fd, (struct sockaddr *)&saddr, &saddr_len);
 
 		  {
-		    struct sockaddr_in *v4 =  (struct sockaddr_in *) &saddr;
-		    sprintf(outbuf, "%s SRC=%s\n", buffer, inet_ntoa(v4->sin_addr));
+		    struct sockaddr_in6 *v4 =  (struct sockaddr_in6 *) &saddr;
+		    char str[INET6_ADDRSTRLEN];
+
+		    ///	sprintf(outbuf, "%s SRC=%s\n", buffer, inet_ntoa(v4->sin6_addr));
+
+		    sprintf(outbuf, "%s SRC=%s\n", buffer, 
+			    inet_ntop(AF_INET6, &v4->sin6_addr, str, sizeof(str)));
+
 		    memset(&buffer, 0, sizeof(buffer));
 
 		    /* override incoming time*/
@@ -969,6 +983,7 @@ int main(int ac, char *av[])
 		      print_report_time(&outbuf[0]);
 
 		  }
+
 		  send_2_listners = 1;
 #if 0
 		  if(cmd) 
