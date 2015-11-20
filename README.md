@@ -100,7 +100,7 @@ Addtional components
 * js A set of Java-scripts can plot, print and visualize sensor data from 
   sensd directly in your web-browser.
 
-* documentation and sample files.  [More info] ((https://github.com/herjulf/sensd/blob/master/seltag/README.md)
+* documentation and sample files.  [More info] (https://github.com/herjulf/sensd/blob/master/seltag/README.md)
 
 * Read Sensors Android app.  [Source Code] (https://github.com/herjulf/Read-Sensors)
 
