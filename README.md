@@ -51,7 +51,7 @@ Key concepts
   Example tags, E64= Where globally unique ID can used. Another more 
   relaxed example is TXT=  a user description. See docs.
 
-* Geatagging and timestamping is supported via tags.
+* Geotagging and timestamping is supported via tags.
 
 * Ecosystem support. There are telphone apps to for data monitoring and
   and plotting. Android app can act as WSN-agent and forward to proxy/RP.
@@ -69,7 +69,7 @@ This is collection of software to implement data monitoring and data collection
 from WSN Wireless Sensor Networks. The goal is to have a very simple,
 straight-forward and robust framework.
 
-The scenario: One or several mots is connected to USB or serial port to gather
+The scenario: One or several motes is connected to USB or serial port to gather
 received information from connected WSN motes. Data can be visualized in
 several ways.
 
@@ -95,12 +95,12 @@ data file. Default is located at _/var/log/sensors.dat_
 Addtional components
 --------------------
 
-* seltag [More info] (./seltag/README.md)
+* seltag [More info] (http://./seltag/README.md)
 
 * js A set of Java-scripts can plot, print and visualize sensor data from 
   sensd directly in your web-browser.
 
-* documentation and sample files.  [More info] (./doc/README.md)
+* documentation and sample files.  [More info] (http://../doc/README.md)
 
 
 Datafile logging
