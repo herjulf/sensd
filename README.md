@@ -17,7 +17,8 @@ standard text tools. The concept restricts Internet access to WSN
 motes and acts agent not to expose motes directly for robustness and 
 security reasons. Low level, physical or link WSN protocol can be used. 
 including  6lowpan, RIME etc and any type of Radio Duty Cycling (RDC). 
-sensd works on the application layer. The M2P model is currently supported.
+sensd works on the application layer.  A TCP connection initiates an 
+implicit "subscribe". The M2P model is currently supported.
 
 Key concepts
 ------------
@@ -28,6 +29,7 @@ Key concepts
 
 * Hub. Share the data from the root or sink node over TCP. In effect sensor 
   data can be sent over Internet to be shared over among TCP active listeners. 
+  The TCP connection initiates an implicit "subscribe".
 
 * Proxy. The support proxy functions over ipv4 and well as ipv6. Sensd can 
   forward to a proxy on a public IP. The typical case is when GW is behind 
