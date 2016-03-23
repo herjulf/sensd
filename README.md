@@ -1,32 +1,68 @@
-sensd - A WSN Internet GW, hub, proxy & cloud
-==============================================
+sensd - A WSN Internet GW, hub, agent, proxy & cloud
+====================================================
 
 Authors
 --------
 Robert Olsson <robert@radio-sensors.com>
 Jens Laas <jens.laas@uadm.uu.se>
 
-Abstract
+Contributors
+------------
+
+Abstract 
 --------
-We've outlined, designed and implemented and very simple concept for WSN data
-reports, including collection, storage and retrieval using standard text tools.
-Sensor data can be sent over Internet to be shared by TCP active listeners. 
-The GW support proxy functions over ipv4 and well as ipv6. Data from various 
-WSN nets or can be merged by the same GW.  This models "cloud service"
-functionality for WSN networks. Sensd can forward to a proxy on a public IP. 
-The typical case is when GW is behind a NAT. 
-sensd can be used both to forward data but it can also work as the "proxy" 
-server receiving WSN data and allowing multiple TCP listeners.
+We've outlined, designed and implemented and very simple concept for WSN 
+data sharing, including data collection, storage and retrieval using 
+standard text tools. The concept restricts Internet access to WSN 
+motes and acts agent not to expose motes directly for robustness and 
+security reasons. Low level, physical or link WSN protocol can be used. 
+including  6lowpan, RIME etc and any type of Radio Duty Cycling (RDC). 
+sensd works on the application layer.  A TCP connection initiates an 
+implicit "subscribe". The M2P model is currently supported.
 
-The concept also includes a mapping to URI (Unified Resource Identifier) to 
-form a WSN caching server similar to CoAP using http-proxy.
-All programs are written C, Java-script and bash. And designed for small
-footprint and with minimal dependencies. sensd runs on Raspberry Pi and Openwrt.
+Key concepts
+------------
 
-Copyright
----------
+* Agent. sensd works as an agent and does not allow direct Internet
+  access to motes. Recall motes are constrained in most aspects and 
+  can not support many connections, has weak security etc.
 
-Open-Source via GPL
+* Hub. Share the data from the root or sink node over TCP. In effect sensor 
+  data can be sent over Internet to be shared over among TCP active listeners. 
+  The TCP connection initiates an implicit "subscribe".
+
+* Proxy. The support proxy functions over ipv4 and well as ipv6. Sensd can 
+  forward to a proxy on a public IP. The typical case is when GW is behind 
+  a NAT.
+ 
+* WSN RP "rendez-vous point". A concepts where data from various WSN nets  
+  are merged. This models a "cloud service" functionality for WSN networks. 
+  sensd can be used both to forward data to RP. It can also work as the RP.
+  RP receiving WSN data and allowing multiple TCP listeners.
+
+* All programs are written C, script in Java and bash. Designed for small
+  footprint and with minimal dependencies. sensd runs on Raspberry Pi and 
+  Openwrt.
+
+* This work introduces a simple tag format for sensor data. The overall
+  idea is that data tagging is an "agreement" between producers and consumer. 
+  Tags are simple are description of the data. Example T=25.2. where T=
+  is the tag 25.2 the value. Most likely this a temperature. But we 
+  can't be sure since we don't know since this is an agreement between 
+  the producer and the consumer. Tags are also used for identification.
+  Example tags, E64= Where globally unique ID can used. Another more 
+  relaxed example is TXT=  a user description. See docs.
+
+* Geotagging and timestamping is supported via tags.
+
+* Ecosystem support. There are telphone apps to for data monitoring and
+  and plotting. Android app can act as WSN-agent and forward to proxy/RP.
+
+* The concept also includes a mapping to URI (Unified Resource Identifier) 
+  to form a WSN caching server similar to CoAP using http-proxy.
+
+* Copyright. Open-Source via GPL. Projecet used github.com
+
 
 Introduction
 ------------
@@ -35,7 +71,7 @@ This is collection of software to implement data monitoring and data collection
 from WSN Wireless Sensor Networks. The goal is to have a very simple,
 straight-forward and robust framework.
 
-The scenario: One or several mots is connected to USB or serial port to gather
+The scenario: One or several motes is connected to USB or serial port to gather
 received information from connected WSN motes. Data can be visualized in
 several ways.
 
@@ -51,67 +87,25 @@ several ways.
    different TAGS are left for mote user to define. Although the TAGS used in
    our example setup are included in this draft for example purposes.
 
+
 Both formats can easily be stored or linked directly in web tree to form a
 URI to format WSN logging/datafile or caching service.
-
-Major components
-----------------
-
-### sensd
 
 A daemon that reads WSN mote reports from USB/serial and stores data in a ASCII
 data file. Default is located at _/var/log/sensors.dat_
 
-### js
+Addtional components
+--------------------
 
-A set of Java-scripts can plot, print and visualize sensor data from sensd
-directly in your web-browser.
+* seltag [More info] (https://github.com/herjulf/sensd/blob/master/seltag/README.md)
 
-### seltag
+* js A set of Java-scripts can plot, print and visualize sensor data from 
+  sensd directly in your web-browser.
 
-seltag filters and formats "tagged data" on stdin and outputs on stdout
-in column format. A typical seltag input comes from sensd (sensors.dat).
-The resulting data is normally used for plotting and further analysis.
-In most cases seltag is used together unix commands like grep, tail etc.
+* documentation and sample files.  [More info] (https://github.com/herjulf/sensd/blob/master/seltag/README.md)
 
-Syntax:
+* Read Sensors Android app.  [Source Code] (https://github.com/herjulf/Read-Sensors)
 
-seltag -sel ID=%s T=%s V_MCU=%s < infile > outfile
-
-Example:
-
-Raw report
-
-	tail /var/log/sensors.dat | grep 28e13cce020000c6
-
- 	2013-12-30 23:58:24 TZ=CET UT=1388444304 GWGPS_LON=17.36869 GWGPS_LAT=59.51052 &: ID=28e13cce020000c6 PS=1 T=19.00  V_MCU=3.60 UP=18BEC40 V_IN=0.29  V_A1=0.00  V_A2=0.00  [ADDR=225.198 SEQ=248 RSSI=16 LQI=255 DRP=1.00]
-
-tail /var/log/sensors.dat | grep 28e13cce020000c6 | seltag --sel ID=%s T=%s
-
-Running the seltag to filter out tag ID and T
-
-	tail /var/log/sensors.dat | grep 28e13cce020000c6 | seltag 2 ID=%s T=%s
-
-	2013-12-30 23:58:24 28e13cce020000c6 19.00
-
-Note the special syntax "=%s".
-
-### doc
-
-Documentation and sample files
-
-Expose WSN data alternatives:
-
-
-Data types
-----------
-Space or control chars is not allowed in any types.
-
-Float           (F)
-Integer Dec     (Id)
-Integer HEX     (Ih)
-Boolean 0 or 1  (B)
-String          (S)
 
 Datafile logging
 ----------------
@@ -131,64 +125,6 @@ The information with brackets is information generated by the receiving mote
 and is not a part the motes data. Typically RSSI (Receiver Signal Strength
 Indicator) and LQI (Link Quality Indicator)
 
-S = String
-Id = Integer Decimal
-Ih = Integer HEX
-B = Boolean
-
-Example of tags used:
-
-*   UT= Unix time                                (Id)      Provided by sensd
-*   TZ= Time Zone                                (String)  Provided by sensd
-*   GWGPS_LON=                                   (float)   Provided by sensd
-*   GWGPS_LAT=                                   (float)   Provided by sensd
-*   TXT= Node text field, site, name etc         (s)
-*   ID= Unique 64 bit ID                         (S)
-*   E64= EUI-64 Unique 64 bit ID                 (S)
-*   T= temp in C (Celcius)                       (F)
-*   PS= Power Save Indicator                     (B)
-*   P= Pressure                                  (F)
-*   V_MCU= Microcontroller voltage               (F)
-*   UP= Uptime                                  (Ih)
-*   RH= Relative Humidity in %                   (F)
-*   V_IN= Voltage Input                          (F)
-*   V_A1= Voltage Analog 1 (A1)                  (F)
-*   V_A2= Voltage Analog 2 (A2)                  (F)
-*   V_A3= Voltage Analog 1 (A3)                  (F)
-*   V_A4= Voltage Analog 1 (A4)                  (F)
-*   V_AD1= Voltage ADC 1 (AD1)                   (F)
-*   V_AD2= Voltage ADC 2 (AD2)                   (F)
-*   V_AD3= Voltage ADC 3 (AD3)                   (F)
-*   V_AD4= Voltage ADC 4 (AD4)                   (F)
-*   P0= Number of pulses (Input 0)              (Ih)
-*   P0_T= Pulses per Sec  (Input 0)              (F)
-*   P1= Number of pulses (Input 1)              (Ih)
-*   P1_T= Pulses per Sec  (Input 1)              (F)
-*   RSSI= Reeiver Signal Strengh Indicator      (Id)
-*   TTL= Time-To-Live for multi-hop relay       (Id)
-*   LQI= Link Quality Indicator                 (Id)
-*   SEQ= Sequental Number (packet)              (Id)
-*   DRP= Drop Probability (Contiki)              (F)
-*   ADDR=                                        (S)
-*   SRC= Source IP addr. When received by proxy  (S)
-
-Datafile metadata
-------------------
-
-Meta-data and additional information, descriptions and comments can be stored in
-data file to keep everything in on context. Of course pre-cautions must be taken
-so this auxiliary data doesn't conflict with the data. For example to restrict or escape
-the '=' sign. It is suggested that data are retrieved with seltag or a similar technique.
-
-Special characters
------------------
-
-&: is used in the report message. The idea is to distinguish between data
-report and responses to commands. This not yet implemented.
-
-[] The information between brackets [] is supplied by the receiver or sink node
-and not by the sending one. For example Receiver Signal Strength Indicator (RSSI)
-and Link Quality Indicator (LQI) originates from the receiving node.
 
 Internet sensor data
 --------------------
@@ -273,3 +209,8 @@ Example:
 To save in file use nohup:
 
 	nohup nc radio-sensors.com 1235 > /var/log/sensors.dat
+
+As sensd used TCP and ASCII encoding. tetlnet and web-browsers can be used
+as well.
+
+
