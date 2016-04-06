@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "6.0 2015-09-13"
+#define VERSION "6.1 2016-03-23"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -958,6 +958,7 @@ int main(int ac, char *av[])
 		if (rc == 0) 
 		  close_conn = TRUE;
 
+		/* Socket receive */
 		if(rc > 0 && receive) {
 		  len = rc;
 		  buffer[len-1] = ' ';
@@ -970,10 +971,18 @@ int main(int ac, char *av[])
 		  {
 		    struct sockaddr_in6 *v4 =  (struct sockaddr_in6 *) &saddr;
 		    char str[INET6_ADDRSTRLEN];
+		    int hdrlen;
 
 		    ///	sprintf(outbuf, "%s SRC=%s\n", buffer, inet_ntoa(v4->sin6_addr));
 
-		    sprintf(outbuf, "%s SRC=%s\n", buffer, 
+		    /* If we receive non-timestamped reports - just add it */
+
+		    if(buffer[0] == '&' && buffer[1] == ':' && (date || utime))
+		      print_report_header(gpsdev, outbuf);
+		    
+		    hdrlen = strlen(outbuf);
+
+		    sprintf(&outbuf[hdrlen], "%s SRC=%s\n", buffer, 
 			    inet_ntop(AF_INET6, &v4->sin6_addr, str, sizeof(str)));
 
 		    memset(&buffer, 0, sizeof(buffer));
