@@ -17,8 +17,14 @@ Example of tags used:
 
 *   UT= Unix time                                (Id)      Provided by sensd
 *   TZ= Time Zone                                (String)  Provided by sensd
-*   GWGPS_LON=                                   (float)   Provided by sensd
-*   GWGPS_LAT=                                   (float)   Provided by sensd
+*   LON=                                         (float)   Provided by source configured
+*   LAT=                        	         (float)   Provided by source configured
+*   GPS_LON=                                     (float)   Provided by source gps
+*   GPS_LAT=                        	         (float)   Provided by source gps
+*   GW_LON=                                      (float)   Provided by GW configured
+*   GW_LAT=                                      (float)   Provided by GW configured
+*   GWGPS_LON=                                   (float)   Provided by GW gps
+*   GWGPS_LAT=                                   (float)   Provided by GW gps
 *   TXT= Node text field, site, name etc         (s)
 *   ID= Unique 64 bit ID                         (S)
 *   E64= EUI-64 Unique 64 bit ID                 (S)
