@@ -42,7 +42,7 @@
 #include <arpa/inet.h>
 #include "devtag-allinone.h"
 
-#define VERSION "6.1 2016-03-23"
+#define VERSION "6.2 2017-05-01"
 #define END_OF_FILE 26
 #define CTRLD  4
 #define P_LOCK "/var/lock"
@@ -71,7 +71,7 @@ void usage(void)
 {
   printf("\nVersion %s\n", VERSION);
   printf("\nsensd: A WSN gateway, proxy and hub\n");
-  printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-domain dmn] [-utc] [-f file] [-R path] [-g gpsdev] [-LATY.xx] [-LONY.yy] [ -D dev]\n");
+  printf("Usage: sensd [-send addr] [-send_port port] [-p port] [-report] [-domain dmn] [-utc] [-f file] [-R path] [-g gpsdev] [-LATX.xx] [-LONY.yy] [-ALTZ.zz] [ -D dev]\n");
 
   printf(" -D dev       Serial or USB dev. Typically /dev/ttyUSB0\n");
   printf(" -f file      Local logfile. Default is %s\n", LOGFILE);
@@ -93,7 +93,8 @@ void usage(void)
   printf("Example 4: Be a proxy. TCP listers. No file logging\n sensd -report -receive -f /dev/null\n");
   printf("Example 5: Use a named pipe\n sensd -report -f /dev/null -infile mkfifo_file\n");
   printf("Example 6: Use LAT/LON\n sensd -report -f /dev/null -LAT -2.10 -LON 12.10 -D /dev/ttyUSB0\n");
-  printf("Example 7: Use a gps device\n sensd -report -f /dev/null -g /dev/ttyUSB1 -D /dev/ttyUSB0\n");
+  printf("Example 7: Use LAT/LON\n sensd -report -f /dev/null -LAT -2.10 -LON 12.10 -ALT 10.1 -D /dev/ttyUSB0\n");
+  printf("Example 8: Use a gps device\n sensd -report -f /dev/null -g /dev/ttyUSB1 -D /dev/ttyUSB0\n");
 
   exit(-1);
 }
@@ -108,6 +109,8 @@ long baud;
 
 #define GPS_MISS -999
 double lon = GPS_MISS, lat = GPS_MISS;
+#define ALT_MISS -999
+double alt = ALT_MISS;
 
 /*
  * Find out name to use for lockfile when locking tty.
@@ -283,6 +286,11 @@ void print_report_header(char *gpsdev, char *datebuf)
 
   if(lon > GPS_MISS) {
     sprintf(buf, "GW_LON=%-3.5f ", lon);
+    strcat(datebuf, buf);
+  }
+
+  if(alt > ALT_MISS) {
+    sprintf(buf, "GW_ALT=%-4.2f ", alt);
     strcat(datebuf, buf);
   }
 
@@ -638,6 +646,9 @@ int main(int ac, char *av[])
 
 	    else if (strncmp(av[i], "-LAT", 4) == 0) 
 	      lat = strtod(av[++i], NULL);
+
+	    else if (strncmp(av[i], "-ALT", 4) == 0) 
+	      alt = strtod(av[++i], NULL);
 
 	    else
 	      usage();
