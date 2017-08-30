@@ -1,7 +1,8 @@
 MQTT-sensd-Gateway
 ==================
 
-KTH students has a minimal GW between MQTT and sensd:
+KTH students has done a minimal GW between MQTT and sensd to support sensd
+with their smartcity IoT app.
 
 https://github.com/SweGortz/tag_sensd_to_senML_mqtt/blob/master/tagSensdToSenMLd.py
 
