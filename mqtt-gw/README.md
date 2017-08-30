@@ -16,3 +16,8 @@ Code:
 -----
 
 https://github.com/SweGortz/SmartCityIoT
+
+The KTH thesis report
+---------------------
+
+http://kth.diva-portal.org/smash/record.jsf?dswid=1825&pid=diva2%3A1130143&c=6&searchType=SIMPLE&language=en&query=smart+city&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&onlyFullText=false&sf=undergraduate
